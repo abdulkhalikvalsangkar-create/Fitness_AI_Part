@@ -68,12 +68,12 @@ class FileProcessingService {
   }
 
   static Future<String> sendMessage(List<Map<String, dynamic>> messages) async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? "";
+    final String apiKey = dotenv.env['OPENAI_API_KEY'] ?? "";
     final response = await http.post(
       Uri.parse("https://api.openai.com/v1/chat/completions"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $_apiKey",
+        "Authorization": "Bearer $apiKey",
       },
       body: jsonEncode({
         "model": "gpt-4o-mini",
