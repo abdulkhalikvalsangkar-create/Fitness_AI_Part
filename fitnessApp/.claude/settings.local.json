@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find d:\\\\\\\\Code\\\\\\\\chatbotscreeen\\\\\\\\lib -type f -name \"*.dart\")",
+      "Bash(find lib:*)"
+    ]
+  }
+}

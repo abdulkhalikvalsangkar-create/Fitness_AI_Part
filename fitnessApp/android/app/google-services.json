@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "151714532695",
+    "project_id": "fitness-bbe1c",
+    "storage_bucket": "fitness-bbe1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151714532695:android:bb1874473e1a02e1288212",
+        "android_client_info": {
+          "package_name": "com.fitness.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151714532695-r2ji3i3cev1abq35l5n3kp1qh3oc0m1q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fitness.android",
+            "certificate_hash": "a92bf24daa79c93848d8209d6b38c17768fd2b86"
+          }
+        },
+        {
+          "client_id": "151714532695-7j2n36jlhmd3jji6vn7nqjpkfuup7q4l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAODVeQKWR3OpoCnCw0RXw8N7rs3x1KWmw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151714532695-0hcoscv8jrqlt6dig4tls52vqja3ttra.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "151714532695-2viksm2ak2e16ufdqcgfndgvbr0hlrv5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.chatbotscreeen"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
