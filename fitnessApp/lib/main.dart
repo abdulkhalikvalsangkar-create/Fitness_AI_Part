@@ -18,10 +18,17 @@ import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Warning: could not load .env file: $e");
+  }
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
 
   await Hive.initFlutter();
   Hive.registerAdapter(ChatMessageAdapter());
@@ -116,7 +123,7 @@ class _HomeScreenstate extends State<HomeScreen>
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha :0.08),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: const TextField(
@@ -282,9 +289,9 @@ class _HomeScreenstate extends State<HomeScreen>
                     height: 60,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(60),
-                      // color: const Color(0xFF2A1F3F).withOpacity(0.6),
-                      color: Colors.grey.withOpacity(0.2),
-                      border: Border.all(color: Colors.white.withOpacity(0.18)),
+                      // color: const Color(0xFF2A1F3F).withValues(alpha :0.6),
+                      color: Colors.grey.withValues(alpha :0.2),
+                      border: Border.all(color: Colors.white.withValues(alpha :0.18)),
                     ),
 
                     child: TabBar(
@@ -308,7 +315,7 @@ class _HomeScreenstate extends State<HomeScreen>
 
                         // shape: BoxShape.circle,
                         // color: const Color.fromARGB(255, 126, 130, 135),
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha :0.15),
                       ),
 
                       tabs: [

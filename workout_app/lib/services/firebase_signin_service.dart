@@ -1,54 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class FirebaseService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-
-  final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+  static bool _isGoogleSignInInitialized = false;
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(
-        clientId:
-            "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
-      );
-
+      if (!_isGoogleSignInInitialized) {
+        try {
+          await googleSignIn.initialize(
+            clientId: "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
+          );
+          _isGoogleSignInInitialized = true;
+        } catch (e) {
+          debugPrint("GoogleSignIn initialize error: $e");
+        }
+      }
       final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
       if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
 
-      final GoogleSignInClientAuthorization googleclientAuth = await googleUser
-          .authorizationClient
-          .authorizeScopes(['email', 'profile']);
+      final clientAuth = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
+      final String? accessToken = clientAuth.accessToken;
 
-      final GoogleSignInServerAuthorization? googleServerAuth = await googleUser
-          .authorizationClient
-          .authorizeServer(['email', 'profile']);
-
-      debugPrint('GoogleSignIn user: ${googleUser?.email ?? "<no-user>"}');
-      debugPrint(
-        'GoogleSignIn serverAuthCode: ${googleServerAuth?.serverAuthCode}',
-      );
-      debugPrint('GoogleSignIn accessToken: ${googleclientAuth?.accessToken}');
-      debugPrint('GoogleSignIn idToken: ${googleAuth?.idToken}');
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-        accessToken: googleclientAuth.accessToken,
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: accessToken,
+        idToken: idToken,
       );
 
-      return await FirebaseAuth.instance.signInWithCredential(credential);
-    } on Exception catch (e) {
-      // ShowToastDialog.closeLoader();
-      debugPrint(e.toString());
+      return await _firebaseAuth.signInWithCredential(credential);
+    } catch (e, stackTrace) {
       debugPrint("Google sign-in error: ${e.toString()}");
+      debugPrint(stackTrace.toString());
     }
     return null;
   }

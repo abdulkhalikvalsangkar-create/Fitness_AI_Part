@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:FitnessApp/models/file_model.dart';
-import 'package:FitnessApp/services/chat_bot_api.dart';
 import 'package:hive/hive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
+
 
 class FileProcessingService {
   //
@@ -66,8 +68,7 @@ class FileProcessingService {
   }
 
   static Future<String> sendMessage(List<Map<String, dynamic>> messages) async {
-    const String _apiKey =
-        "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";
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? "";
     final response = await http.post(
       Uri.parse("https://api.openai.com/v1/chat/completions"),
       headers: {

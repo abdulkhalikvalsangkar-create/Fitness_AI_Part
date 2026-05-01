@@ -60,7 +60,7 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
         height: 45,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha :0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -137,8 +137,8 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    //final screenWidth = MediaQuery.of(context).size.width;
+    //final screenHeight = MediaQuery.of(context).size.height;
 
     // final cardWidth = screenWidth * 0.9;
     // final orbSize = screenWidth * 0.4;
@@ -192,7 +192,7 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
                         190,
                         182,
                         191,
-                      ).withOpacity(0.6),
+                      ).withValues(alpha :0.6),
                       blurRadius: 70,
                       spreadRadius: 7,
                     ),
@@ -236,7 +236,7 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
               //     child: SearchBar(
               //       controller: _controller,
               //       backgroundColor: WidgetStateProperty.all(
-              //         Colors.grey.withOpacity(0.04),
+              //         Colors.grey.withValues(alpha :0.04),
               //       ),
 
               //       elevation: WidgetStateProperty.all(0),
@@ -422,9 +422,9 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
                       width: 40,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha :0.1),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha :0.2),
                         ),
                       ),
                       child: const Icon(
@@ -500,7 +500,7 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha :0.15)),
       ),
       child: child,
     );
@@ -513,7 +513,7 @@ class _Chatbotscreenstate extends State<Chatbootscreen> {
           width: width,
           height: height, // optional ✅
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.12),
+            color: Colors.grey.withValues(alpha :0.12),
             borderRadius: borderRadius,
           ),
           child: content,

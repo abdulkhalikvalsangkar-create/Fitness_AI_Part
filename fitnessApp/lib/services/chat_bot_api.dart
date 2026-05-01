@@ -3,12 +3,13 @@ import 'package:FitnessApp/helpers/file_picker_util.dart';
 import 'package:FitnessApp/services/firebase_service.dart';
 import 'package:FitnessApp/services/firestore_service.dart';
 import 'package:FitnessApp/services/healthconnect.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+
 class OpenAIService {
-  static const String _apiKey =
-      "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";
-  // static const String _apiKey = "";
+  static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? "";
+
   static final tools = [
     {
       "type": "function",
