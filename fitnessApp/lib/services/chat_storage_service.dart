@@ -5,6 +5,10 @@ import 'package:hive/hive.dart';
 import '../models/chat_session.dart';
 import '../models/chat_message.dart';
 
+/// MODIFIED: Enhanced ChatStorageService with multi-file per chat support (Phase 1)
+/// Now includes methods to retrieve all files attached to a chat session
+/// This enables the chatbot to access all uploaded documents for context
+
 class ChatStorageService {
   static String? _lastChatId;
   static final _box = Hive.box<ChatSession>('chats');
@@ -27,7 +31,6 @@ class ChatStorageService {
     if (chat == null) {
       chat = ChatSession(
         id: chatId,
-        // title: _getChatTitle(message),
         title: generateChatTitle(message.content),
         messages: [],
       );
@@ -39,20 +42,12 @@ class ChatStorageService {
 
     /// Set title from first message
     if (chat.messages.length == 1) {
-      // chat.title = _getChatTitle(message);
       chat.title = generateChatTitle(message.content);
     }
     chat.save();
   }
 
   static String _getChatTitle(ChatMessage message) {
-    //   if (message.content != null && message.content?.isNotEmpty) {
-    //     if (message.filepath!.isNotEmpty) {
-    //       return message.filepath!.split('/').last;
-    //     }
-    //     return message.content!;
-    //   }
-    //   return 'New Chat';
     if (message.content != null && message.content!.isNotEmpty) {
       return message.content!;
     }
@@ -78,7 +73,72 @@ class ChatStorageService {
 
   static ChatSession? getLastActiveChat() {
     if (_lastChatId == null) return null;
-    return getChat(_lastChatId!); // assuming you already have this
+    return getChat(_lastChatId!);
+  }
+
+  /// NEW (Phase 1): Get all files attached to a specific chat session
+  /// Retrieves FileModel objects for all unique fileIds in the chat's messages
+  /// This enables the chatbot to access all documents in the current conversation
+  static List<FileModel> getChatFiles(String chatId) {
+    final chat = getChat(chatId);
+    if (chat == null) return [];
+    
+    final fileBox = Hive.box<FileModel>('files');
+    final fileIds = <String>{};
+    final files = <FileModel>[];
+    
+    // Collect all unique fileIds from chat messages
+    for (final message in chat.messages) {
+      if (message.fileId != null && !fileIds.contains(message.fileId)) {
+        fileIds.add(message.fileId!);
+        final file = fileBox.get(message.fileId!);
+        if (file != null) {
+          files.add(file);
+        }
+      }
+    }
+    
+    return files;
+  }
+
+  /// NEW (Phase 1): Attach a file to an existing chat
+  /// Allows users to upload documents during an active conversation
+  /// Creates a file message to track the attachment in chat history
+  static void attachFileToChat(String chatId, FileModel fileModel) {
+    ChatSession? chat = getChat(chatId);
+    if (chat == null) return;
+    
+    // Create a file message to record the attachment
+    final fileMessage = ChatMessage(
+      role: "user",
+      type: "file",
+      fileId: fileModel.fileId,
+      content: "Attached file: ${fileModel.name}. Summary: ${fileModel.contentsummary}",
+      timestamp: DateTime.now(),
+    );
+    
+    chat.messages.add(fileMessage);
+    chat.save();
+  }
+
+  /// NEW (Phase 1): Get extracted text content from all files in a chat
+  /// Useful for building context for the chatbot from all attached documents
+  /// Returns a combined string of all file contents for AI processing
+  static String getCombinedFileContext(String chatId) {
+    final files = getChatFiles(chatId);
+    if (files.isEmpty) return "";
+    
+    final contextParts = <String>[];
+    
+    for (final file in files) {
+      // Prefer full text if available, fall back to summary
+      final content = file.fullText ?? file.contentsummary ?? "";
+      if (content.isNotEmpty) {
+        contextParts.add("=== ${file.name} ===\n$content");
+      }
+    }
+    
+    return contextParts.join("\n\n");
   }
 
   static Future<void> removeFile({
@@ -120,7 +180,7 @@ class ChatStorageService {
       'be',
     };
 
-    // Words that are common but useless in YOUR domain
+    // Words that are common but useless in medical domain
     final ignoreWords = {
       'report',
       'data',
@@ -142,8 +202,8 @@ class ChatStorageService {
         .replaceAll(
           RegExp(r'[^\w\s]'),
           ' ',
-        ) // Replace non-alphanumeric with space
-        .replaceAll(RegExp(r'\s+'), ' ') // Normalize multiple spaces
+        )
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
     final tokens = cleaned.split(' ');
@@ -176,23 +236,22 @@ class ChatStorageService {
     }
 
     for (var phrase in phrases) {
-      counts[phrase] = (counts[phrase] ?? 0) + 2; // phrases > words
+      counts[phrase] = (counts[phrase] ?? 0) + 2;
     }
 
     if (counts.isEmpty) return "New Chat";
 
-    // 4. Sort by importance (descending frequency)
+    // 4. Sort by importance
     final sorted = counts.keys.toList()
       ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
 
-    // 5. Take best 2–3 items (ensure relevance)
+    // 5. Take best 2–3 items
     final title = sorted.take(3).join(' ');
 
     // 6. Capitalize properly
     return title
         .split(' ')
         .map((w) {
-          // Capitalize only the first letter of each word that is not a stop word
           if (w.length > 3 && !stopWords.contains(w)) {
             return w[0].toUpperCase() + w.substring(1);
           } else {

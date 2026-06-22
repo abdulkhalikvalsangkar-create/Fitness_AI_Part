@@ -22,8 +22,15 @@ class FileModel extends HiveObject {
   @HiveField(5)
   String? contentsummary;
 
-  // @HiveField(6)
-  // String? fullText;
+  // MODIFIED: Added fullText field to store complete extracted text from documents
+  // This enables better context for chatbot across all document types
+  @HiveField(6)
+  String? fullText;
+
+  // MODIFIED: Added fileExtension field for clearer file type detection
+  // Supports: pdf, doc, docx, txt, md, pptx
+  @HiveField(7)
+  String? fileExtension;
 
   FileModel({
     required this.path,
@@ -32,6 +39,7 @@ class FileModel extends HiveObject {
     required this.fileId,
     required this.uploadDate,
     this.contentsummary,
-    // this.fullText,
+    this.fullText,
+    this.fileExtension,
   });
 }

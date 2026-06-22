@@ -3,9 +3,12 @@ import 'package:FitnessApp/helpers/file_picker_util.dart';
 import 'package:FitnessApp/services/firebase_service.dart';
 import 'package:FitnessApp/services/firestore_service.dart';
 import 'package:FitnessApp/services/healthconnect.dart';
+import 'package:FitnessApp/services/chat_storage_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+// MODIFIED: Enhanced OpenAIService with Phase 1 document context support
+// Now includes sendMessageWithContext to automatically include attached files
 
 class OpenAIService {
   static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? "";
@@ -105,6 +108,45 @@ class OpenAIService {
       },
     },
   ];
+
+  /// NEW (Phase 1): Send message with file context from current chat
+  /// Automatically retrieves all files attached to the chat session
+  /// and includes their content as context for the AI
+  /// This ensures the chatbot can reference all uploaded documents
+  static Future<String> sendMessageWithContext(
+    String chatId,
+    List<Map<String, dynamic>> messages,
+  ) async {
+    // MODIFIED: Get combined context from all files in the chat
+    final fileContext = ChatStorageService.getCombinedFileContext(chatId);
+    
+    // Create a copy to avoid modifying the original
+    final enhancedMessages = List<Map<String, dynamic>>.from(messages);
+    
+    // If we have file context, inject it into the system message or create one
+    if (fileContext.isNotEmpty) {
+      // Find or create a system message
+      int systemMessageIndex = enhancedMessages.indexWhere((m) => m['role'] == 'system');
+      
+      if (systemMessageIndex >= 0) {
+        // Append context to existing system message
+        enhancedMessages[systemMessageIndex]['content'] =
+            "${enhancedMessages[systemMessageIndex]['content']}\n\n"
+            "Context from attached documents:\n$fileContext";
+      } else {
+        // Insert a new system message with context
+        enhancedMessages.insert(0, {
+          'role': 'system',
+          'content': 
+              'You have access to attached documents. Use them as context for answering questions.\n\n'
+              'Context from attached documents:\n$fileContext'
+        });
+      }
+    }
+    
+    // Call the regular sendMessage with the enhanced message list
+    return await sendMessage(enhancedMessages);
+  }
 
   // static Future<String> sendMessage(List<Map<String, dynamic>> messages) async {
   //   final workingMessages = List<Map<String, dynamic>>.from(messages);
