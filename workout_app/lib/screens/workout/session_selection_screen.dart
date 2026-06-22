@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:health/health.dart';
 import '../../models/blueprint_models.dart';
 import '../../providers/current_session_provider.dart';
 import '../../providers/history_provider.dart';
@@ -92,6 +93,121 @@ class _NoProgram extends StatelessWidget {
   }
 }
 
+final stepsProvider = FutureProvider.autoDispose<int>((ref) async {
+  try {
+    final health = Health();
+    await health.configure();
+    bool available = await health.isHealthConnectAvailable();
+    if (!available) return 0;
+
+    bool granted = await health.requestAuthorization([HealthDataType.STEPS]);
+    if (!granted) return 0;
+
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = now;
+
+    final data = await health.getHealthDataFromTypes(
+      startTime: start,
+      endTime: end,
+      types: [HealthDataType.STEPS],
+    );
+
+    final cleaned = health.removeDuplicates(data);
+    double total = 0;
+    for (var point in cleaned) {
+      if (point.value is NumericHealthValue) {
+        total += (point.value as NumericHealthValue).numericValue;
+      }
+    }
+    return total.toInt();
+  } catch (e) {
+    return 0;
+  }
+});
+
+class _StepsCard extends ConsumerStatefulWidget {
+  const _StepsCard();
+
+  @override
+  ConsumerState<_StepsCard> createState() => _StepsCardState();
+}
+
+class _StepsCardState extends ConsumerState<_StepsCard> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      if (mounted) {
+        _startTimer();
+      }
+    });
+  }
+
+  void _startTimer() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 30));
+      if (!mounted) return false;
+      ref.invalidate(stepsProvider);
+      return true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stepsAsync = ref.watch(stepsProvider);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.directions_walk,
+              size: 32,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Steps Today',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                  stepsAsync.when(
+                    data: (steps) => Text(
+                      '$steps',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                    loading: () => const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    error: (e, _) => const Text('--'),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.invalidate(stepsProvider),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProgramView extends ConsumerWidget {
   final ProgramBlueprint program;
   const _ProgramView({required this.program});
@@ -103,6 +219,7 @@ class _ProgramView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
+        const _StepsCard(),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(

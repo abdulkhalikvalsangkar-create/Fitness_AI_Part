@@ -1,2 +1,7 @@
 projects_analysis.md
 backup_system/
+
+# Environment variables (API keys, secrets)
+.env
+.env.*
+!.env.example

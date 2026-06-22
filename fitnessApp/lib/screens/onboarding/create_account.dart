@@ -95,7 +95,10 @@ class _CreateAccountscreen extends State<CreateAccountscreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Haven't received the code yet? "),
+                  const Text(
+                    "Haven't received the code yet? ",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   GestureDetector(
                     onTap: () {},
                     child: const Text(
@@ -109,7 +112,10 @@ class _CreateAccountscreen extends State<CreateAccountscreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account? "),
+                  const Text(
+                    "Already have an account? ",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(

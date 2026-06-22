@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "151714532695-ckl5adt9gs2pjbj4pndg4phfh40fqfp6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fitness.android",
+            "certificate_hash": "d3af2fa5fad8bd6da555c328b4ef461b311c0322"
+          }
+        },
+        {
           "client_id": "151714532695-r2ji3i3cev1abq35l5n3kp1qh3oc0m1q.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -22,7 +30,59 @@
           }
         },
         {
-          "client_id": "151714532695-7j2n36jlhmd3jji6vn7nqjpkfuup7q4l.apps.googleusercontent.com",
+          "client_id": "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAODVeQKWR3OpoCnCw0RXw8N7rs3x1KWmw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151714532695-0hcoscv8jrqlt6dig4tls52vqja3ttra.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "151714532695-2viksm2ak2e16ufdqcgfndgvbr0hlrv5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.chatbotscreeen"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151714532695:android:ff8fc6726a5fec70288212",
+        "android_client_info": {
+          "package_name": "com.workoutapp.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151714532695-au368mvm3a63ilsaepeqblbs0chtmuuu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workoutapp.android",
+            "certificate_hash": "a92bf24daa79c93848d8209d6b38c17768fd2b86"
+          }
+        },
+        {
+          "client_id": "151714532695-ff1176np0mkao3jtb7fau7gbafpn04k6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.workoutapp.android",
+            "certificate_hash": "d3af2fa5fad8bd6da555c328b4ef461b311c0322"
+          }
+        },
+        {
+          "client_id": "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
           "client_type": 3
         }
       ],

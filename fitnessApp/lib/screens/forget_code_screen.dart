@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class EmailCodeScreen extends StatefulWidget {
+  const EmailCodeScreen({super.key});
+
   @override
   State<EmailCodeScreen> createState() => _EmailCodeScreenstate();
 }
@@ -54,7 +56,10 @@ class _EmailCodeScreenstate extends State<EmailCodeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Haven't received the code yet? "),
+                  const Text(
+                    "Haven't received the code yet? ",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   GestureDetector(
                     onTap: () {},
                     child: const Text(

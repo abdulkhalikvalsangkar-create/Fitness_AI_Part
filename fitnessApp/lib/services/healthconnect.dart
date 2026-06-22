@@ -24,24 +24,26 @@ class HealthService {
     required DateTime startTime,
     required endTime,
   }) async {
-    await requestHealthPermissions();
+    try {
+      await requestHealthPermissions();
 
-    // await checkPermissions(health, types);
-    // final now = DateTime.now();
-    // final yesterday = now.subtract(const Duration(days: 2));
+      bool available = await health.isHealthConnectAvailable();
+      if (!available) {
+        return [];
+      }
 
-    List<HealthDataPoint> data = await health.getHealthDataFromTypes(
-      // startTime: yesterday,
-      // endTime: now,
-      // types: types,
-      startTime: startTime,
-      endTime: endTime,
-      types: types,
-    );
+      List<HealthDataPoint> data = await health.getHealthDataFromTypes(
+        startTime: startTime,
+        endTime: endTime,
+        types: types,
+      );
 
-    data = health.removeDuplicates(data);
-
-    return data;
+      data = health.removeDuplicates(data);
+      return data;
+    } catch (e) {
+      print("Error fetching all health data: $e");
+      return [];
+    }
   }
 
   Future<void> requestHealthPermissions() async {
@@ -50,56 +52,43 @@ class HealthService {
 
       bool available = await health.isHealthConnectAvailable();
       if (!available) {
-        throw Exception("Health Connect not available");
+        print("Health Connect not available on this device");
+        return;
       }
 
       bool granted = await health.requestAuthorization(types);
-
       if (!granted) {
-        throw Exception("Health permissions not granted by user");
+        print("Health permissions not granted by user");
+        return;
       }
     } catch (e) {
       print("Health permission error: $e");
-      rethrow;
     }
   }
-  // Future<void> getWorkout() async {
-  //   // final workouts = data
-  //   //     .where((data) => data.type == HealthDataType.WORKOUT)
-  //   //     .toList();
-  //   // for (var workout in workouts) {
-  //   //   print("Raw Data: ${workout.toJson()}");
-  //   //   print("Workout Type: ${workout.value}");
-  //   //   print("Workout Start: ${workout.dateFrom}");
-  //   //   print("Workout End: ${workout.dateTo}");
-  //   //   print("Workout Source: ${workout.sourceName}");
-  //   // }
-  //   List<String> exercises = [];
-
-  //   // final data = await HealthNativeService.getExercises();
-
-  //   print(data);
-  // }
 
   Future<double?> getHeight() async {
-    print("GETHEIGHT CALLED");
-    await health.requestAuthorization([HealthDataType.HEIGHT]);
-    final now = DateTime.now();
-    final past = now.subtract(Duration(days: 3650)); // long range
+    try {
+      print("GETHEIGHT CALLED");
+      await health.requestAuthorization([HealthDataType.HEIGHT]);
+      final now = DateTime.now();
+      final past = now.subtract(Duration(days: 3650)); // long range
 
-    final healthData = await health.getHealthDataFromTypes(
-      startTime: past,
-      endTime: now,
-      types: [HealthDataType.HEIGHT],
-    );
+      final healthData = await health.getHealthDataFromTypes(
+        startTime: past,
+        endTime: now,
+        types: [HealthDataType.HEIGHT],
+      );
 
-    if (healthData.isNotEmpty) {
-      final height = healthData.last.value; // latest value
-      if (height is NumericHealthValue) {
-        print("This is the height ${height.numericValue.toDouble()}");
+      if (healthData.isNotEmpty) {
+        final height = healthData.last.value; // latest value
+        if (height is NumericHealthValue) {
+          print("This is the height ${height.numericValue.toDouble()}");
+        }
+      } else {
+        print("HEIGHT IS EMPTY");
       }
-    } else {
-      print("HEIGHT IS EMPTY");
+    } catch (e) {
+      print("Error fetching height: $e");
     }
     return null;
   }
@@ -108,282 +97,326 @@ class HealthService {
     Health health,
     List<HealthDataType> types,
   ) async {
-    bool granted = await health.requestAuthorization(types);
+    try {
+      bool granted = await health.requestAuthorization(types);
 
-    Map<HealthDataType, bool> permissionStatus = {};
+      Map<HealthDataType, bool> permissionStatus = {};
 
-    for (var type in types) {
-      bool? has = await health.hasPermissions([type]);
-      permissionStatus[type] = has ?? false;
-    }
-
-    List<HealthDataType> grantedTypes = [];
-    List<HealthDataType> deniedTypes = [];
-
-    permissionStatus.forEach((type, isGranted) {
-      if (isGranted) {
-        grantedTypes.add(type);
-      } else {
-        deniedTypes.add(type);
+      for (var type in types) {
+        bool? has = await health.hasPermissions([type]);
+        permissionStatus[type] = has ?? false;
       }
-    });
+
+      List<HealthDataType> grantedTypes = [];
+      List<HealthDataType> deniedTypes = [];
+
+      permissionStatus.forEach((type, isGranted) {
+        if (isGranted) {
+          grantedTypes.add(type);
+        } else {
+          deniedTypes.add(type);
+        }
+      });
+    } catch (e) {
+      print("Error in checkPermissions: $e");
+    }
   }
 
   static Future<Map<String, dynamic>> getBodyWeight(int days) async {
-    final Health health = Health();
+    try {
+      final Health health = Health();
 
-    await health.configure();
+      await health.configure();
 
-    final end = DateTime.now();
-    final start = end.subtract(Duration(days: days));
+      bool available = await health.isHealthConnectAvailable();
+      if (!available) {
+        return {"range_days": days, "error": "Health Connect not available"};
+      }
 
-    final types = [HealthDataType.WEIGHT, HealthDataType.BODY_FAT_PERCENTAGE];
+      final end = DateTime.now();
+      final start = end.subtract(Duration(days: days));
 
-    final data = await health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: end,
-      types: types,
-    );
+      final types = [HealthDataType.WEIGHT, HealthDataType.BODY_FAT_PERCENTAGE];
 
-    final cleaned = health.removeDuplicates(data);
+      final data = await health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: end,
+        types: types,
+      );
 
-    Map<String, Map<String, double>> daily = {};
+      final cleaned = health.removeDuplicates(data);
 
-    double? latestWeight;
-    double? latestBodyFat;
-    DateTime? latestWeightTime;
-    DateTime? latestBodyFatTime;
+      Map<String, Map<String, double>> daily = {};
 
-    for (var point in cleaned) {
-      if (point.value is! NumericHealthValue) continue;
+      double? latestWeight;
+      double? latestBodyFat;
+      DateTime? latestWeightTime;
+      DateTime? latestBodyFatTime;
 
-      final value = (point.value as NumericHealthValue).numericValue.toDouble();
+      for (var point in cleaned) {
+        if (point.value is! NumericHealthValue) continue;
 
-      final date = point.dateFrom;
-      final key =
-          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+        final value = (point.value as NumericHealthValue).numericValue.toDouble();
 
-      daily[key] ??= {};
+        final date = point.dateFrom;
+        final key =
+            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-      if (point.type == HealthDataType.WEIGHT) {
-        daily[key]!["weight"] = value;
+        daily[key] ??= {};
 
-        // track latest
-        if (latestWeightTime == null || date.isAfter(latestWeightTime)) {
-          latestWeightTime = date;
-          latestWeight = value;
-        }
-      } else if (point.type == HealthDataType.BODY_FAT_PERCENTAGE) {
-        daily[key]!["body_fat"] = value;
+        if (point.type == HealthDataType.WEIGHT) {
+          daily[key]!["weight"] = value;
 
-        if (latestBodyFatTime == null || date.isAfter(latestBodyFatTime)) {
-          latestBodyFatTime = date;
-          latestBodyFat = value;
+          // track latest
+          if (latestWeightTime == null || date.isAfter(latestWeightTime)) {
+            latestWeightTime = date;
+            latestWeight = value;
+          }
+        } else if (point.type == HealthDataType.BODY_FAT_PERCENTAGE) {
+          daily[key]!["body_fat"] = value;
+
+          if (latestBodyFatTime == null || date.isAfter(latestBodyFatTime)) {
+            latestBodyFatTime = date;
+            latestBodyFat = value;
+          }
         }
       }
+
+      final dailyList =
+          daily.entries.map((e) {
+            return {"date": e.key, ...e.value.map((k, v) => MapEntry(k, v))};
+          }).toList()..sort(
+            (a, b) => (a["date"] as String).compareTo(b["date"] as String),
+          );
+
+      // Optional stats
+      double? minWeight, maxWeight;
+
+      final weightValues = dailyList
+          .where((e) => e["weight"] != null)
+          .map((e) => (e["weight"] as double))
+          .toList();
+
+      if (weightValues.isNotEmpty) {
+        minWeight = weightValues.reduce((a, b) => a < b ? a : b);
+        maxWeight = weightValues.reduce((a, b) => a > b ? a : b);
+      }
+
+      return {
+        "range_days": days,
+
+        if (latestWeight != null) "latest_weight": latestWeight,
+        if (latestBodyFat != null) "latest_body_fat": latestBodyFat,
+
+        if (dailyList.isNotEmpty) "daily_body_metrics": dailyList,
+
+        if (minWeight != null && maxWeight != null)
+          "weight_range": {"min": minWeight, "max": maxWeight},
+      };
+    } catch (e) {
+      print("Error fetching body weight data: $e");
+      return {"range_days": days, "error": e.toString()};
     }
-
-    final dailyList =
-        daily.entries.map((e) {
-          return {"date": e.key, ...e.value.map((k, v) => MapEntry(k, v))};
-        }).toList()..sort(
-          (a, b) => (a["date"] as String).compareTo(b["date"] as String),
-        );
-
-    // Optional stats
-    double? minWeight, maxWeight;
-
-    final weightValues = dailyList
-        .where((e) => e["weight"] != null)
-        .map((e) => (e["weight"] as double))
-        .toList();
-
-    if (weightValues.isNotEmpty) {
-      minWeight = weightValues.reduce((a, b) => a < b ? a : b);
-      maxWeight = weightValues.reduce((a, b) => a > b ? a : b);
-    }
-
-    return {
-      "range_days": days,
-
-      if (latestWeight != null) "latest_weight": latestWeight,
-      if (latestBodyFat != null) "latest_body_fat": latestBodyFat,
-
-      if (dailyList.isNotEmpty) "daily_body_metrics": dailyList,
-
-      if (minWeight != null && maxWeight != null)
-        "weight_range": {"min": minWeight, "max": maxWeight},
-    };
   }
 
   static Future<Map<String, dynamic>> getSleepData(int days) async {
-    final Health health = Health();
+    try {
+      final Health health = Health();
 
-    await health.configure();
+      await health.configure();
 
-    final end = DateTime.now();
-    final start = end.subtract(Duration(days: days));
+      bool available = await health.isHealthConnectAvailable();
+      if (!available) {
+        return {"days": days, "error": "Health Connect not available"};
+      }
 
-    final data = await health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: end,
-      types: [HealthDataType.SLEEP_ASLEEP],
-    );
+      final end = DateTime.now();
+      final start = end.subtract(Duration(days: days));
 
-    final cleaned = health.removeDuplicates(data);
+      final data = await health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: end,
+        types: [HealthDataType.SLEEP_ASLEEP],
+      );
 
-    final sleepHours = cleaned.map((e) {
-      final value = e.value as NumericHealthValue;
-      return value.numericValue / 3600;
-    }).toList();
+      final cleaned = health.removeDuplicates(data);
 
-    return {"days": days, "sleep_hours": sleepHours};
+      final sleepHours = cleaned.map((e) {
+        final value = e.value as NumericHealthValue;
+        return value.numericValue / 3600;
+      }).toList();
+
+      return {"days": days, "sleep_hours": sleepHours};
+    } catch (e) {
+      print("Error fetching sleep data: $e");
+      return {"days": days, "error": e.toString()};
+    }
   }
 
   static Future<Map<String, dynamic>> getStepsData(int days) async {
-    final Health health = Health();
+    try {
+      final Health health = Health();
 
-    await health.configure();
+      await health.configure();
 
-    final end = DateTime.now();
-    final start = end.subtract(Duration(days: days));
+      bool available = await health.isHealthConnectAvailable();
+      if (!available) {
+        return {"range_days": days, "error": "Health Connect not available"};
+      }
 
-    final data = await health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: end,
-      types: [HealthDataType.STEPS],
-    );
+      final end = DateTime.now();
+      final start = end.subtract(Duration(days: days));
 
-    final cleaned = health.removeDuplicates(data);
+      final data = await health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: end,
+        types: [HealthDataType.STEPS],
+      );
 
-    double totalSteps = 0;
-    Map<String, int> stepsPerDay = {};
+      final cleaned = health.removeDuplicates(data);
 
-    for (var point in cleaned) {
-      final value = point.value as NumericHealthValue;
-      final steps = value.numericValue.toInt();
+      double totalSteps = 0;
+      Map<String, int> stepsPerDay = {};
 
-      totalSteps += steps;
+      for (var point in cleaned) {
+        final value = point.value as NumericHealthValue;
+        final steps = value.numericValue.toInt();
 
-      final date = point.dateFrom;
-      final key =
-          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+        totalSteps += steps;
 
-      stepsPerDay[key] = (stepsPerDay[key] ?? 0) + steps;
+        final date = point.dateFrom;
+        final key =
+            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+        stepsPerDay[key] = (stepsPerDay[key] ?? 0) + steps;
+      }
+
+      // Convert to sorted list (VERY important for LLM clarity)
+      final dailyList =
+          stepsPerDay.entries.map((e) {
+            return {"date": e.key, "steps": e.value};
+          }).toList()..sort(
+            (a, b) => (a["date"] as String).compareTo((b["date"] as String)),
+          );
+
+      return {
+        "range_days": days,
+        "total_steps": totalSteps.toInt(),
+        "daily_steps": dailyList,
+      };
+    } catch (e) {
+      print("Error fetching steps data: $e");
+      return {"range_days": days, "error": e.toString()};
     }
-
-    // Convert to sorted list (VERY important for LLM clarity)
-    final dailyList =
-        stepsPerDay.entries.map((e) {
-          return {"date": e.key, "steps": e.value};
-        }).toList()..sort(
-          (a, b) => (a["date"] as String).compareTo((b["date"] as String)),
-        );
-
-    return {
-      "range_days": days,
-      "total_steps": totalSteps.toInt(),
-      "daily_steps": dailyList,
-    };
   }
 
   static Future<Map<String, dynamic>> getNutritionData(int days) async {
-    final Health health = Health();
+    try {
+      final Health health = Health();
 
-    await health.configure();
+      await health.configure();
 
-    final end = DateTime.now();
-    final start = end.subtract(Duration(days: days));
-
-    final data = await health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: end,
-      types: [HealthDataType.NUTRITION],
-    );
-
-    final cleaned = health.removeDuplicates(data);
-
-    Map<String, Map<String, double>> daily = {};
-    Map<String, double> totals = {};
-    List<Map<String, dynamic>> foodEntries = [];
-
-    for (var point in cleaned) {
-      final n = point.value as NutritionHealthValue;
-
-      final date = point.dateFrom;
-      final key =
-          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-
-      daily[key] ??= {};
-
-      void add(String field, double? value) {
-        if (value == null || value == 0) return;
-
-        daily[key]![field] = (daily[key]![field] ?? 0) + value;
-        totals[field] = (totals[field] ?? 0) + value;
+      bool available = await health.isHealthConnectAvailable();
+      if (!available) {
+        return {"range_days": days, "error": "Health Connect not available"};
       }
 
-      add("calories", n.calories);
-      add("protein", n.protein);
-      add("carbs", n.carbs);
-      add("fat", n.fat);
-      add("fiber", n.fiber);
-      add("sugar", n.sugar);
+      final end = DateTime.now();
+      final start = end.subtract(Duration(days: days));
 
-      // ✅ Lightweight food entry for chatbot context
-      final entry = <String, dynamic>{"date": key};
+      final data = await health.getHealthDataFromTypes(
+        startTime: start,
+        endTime: end,
+        types: [HealthDataType.NUTRITION],
+      );
 
-      if (n.name != null && n.name!.isNotEmpty) {
-        entry["name"] = n.name;
+      final cleaned = health.removeDuplicates(data);
+
+      Map<String, Map<String, double>> daily = {};
+      Map<String, double> totals = {};
+      List<Map<String, dynamic>> foodEntries = [];
+
+      for (var point in cleaned) {
+        final n = point.value as NutritionHealthValue;
+
+        final date = point.dateFrom;
+        final key =
+            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+        daily[key] ??= {};
+
+        void add(String field, double? value) {
+          if (value == null || value == 0) return;
+
+          daily[key]![field] = (daily[key]![field] ?? 0) + value;
+          totals[field] = (totals[field] ?? 0) + value;
+        }
+
+        add("calories", n.calories);
+        add("protein", n.protein);
+        add("carbs", n.carbs);
+        add("fat", n.fat);
+        add("fiber", n.fiber);
+        add("sugar", n.sugar);
+
+        // ✅ Lightweight food entry for chatbot context
+        final entry = <String, dynamic>{"date": key};
+
+        if (n.name != null && n.name!.isNotEmpty) {
+          entry["name"] = n.name;
+        }
+
+        if (n.mealType != null && n.mealType!.isNotEmpty) {
+          entry["meal_type"] = n.mealType;
+        }
+
+        if (n.calories != null && n.calories! > 0) {
+          entry["calories"] = n.calories!.round();
+        }
+
+        if (n.protein != null && n.protein! > 0) {
+          entry["protein"] = n.protein!.round();
+        }
+
+        if (n.carbs != null && n.carbs! > 0) {
+          entry["carbs"] = n.carbs!.round();
+        }
+
+        if (n.fat != null && n.fat! > 0) {
+          entry["fat"] = n.fat!.round();
+        }
+
+        // Only include meaningful entries
+        if (entry.length > 1) {
+          foodEntries.add(entry);
+        }
       }
 
-      if (n.mealType != null && n.mealType!.isNotEmpty) {
-        entry["meal_type"] = n.mealType;
-      }
+      final dailyList =
+          daily.entries.map((e) {
+            return {
+              "date": e.key,
+              ...e.value.map((k, v) => MapEntry(k, v.round())),
+            };
+          }).toList()..sort(
+            (a, b) => (a["date"] as String).compareTo((b["date"] as String)),
+          );
 
-      if (n.calories != null && n.calories! > 0) {
-        entry["calories"] = n.calories!.round();
-      }
+      final roundedTotals = totals.map((k, v) => MapEntry(k, v.round()));
 
-      if (n.protein != null && n.protein! > 0) {
-        entry["protein"] = n.protein!.round();
-      }
+      return {
+        "range_days": days,
 
-      if (n.carbs != null && n.carbs! > 0) {
-        entry["carbs"] = n.carbs!.round();
-      }
+        if (roundedTotals.isNotEmpty) "totals": roundedTotals,
+        if (dailyList.isNotEmpty) "daily_nutrition": dailyList,
 
-      if (n.fat != null && n.fat! > 0) {
-        entry["fat"] = n.fat!.round();
-      }
-
-      // Only include meaningful entries
-      if (entry.length > 1) {
-        foodEntries.add(entry);
-      }
+        // ✅ Add food context (limit size if needed)
+        // if (foodEntries.isNotEmpty) "food_entries": foodEntries.take(50).toList(),
+        "note": "Only available nutrition data is included.",
+      };
+    } catch (e) {
+      print("Error fetching nutrition data: $e");
+      return {"range_days": days, "error": e.toString()};
     }
-
-    final dailyList =
-        daily.entries.map((e) {
-          return {
-            "date": e.key,
-            ...e.value.map((k, v) => MapEntry(k, v.round())),
-          };
-        }).toList()..sort(
-          (a, b) => (a["date"] as String).compareTo((b["date"] as String)),
-        );
-
-    final roundedTotals = totals.map((k, v) => MapEntry(k, v.round()));
-
-    return {
-      "range_days": days,
-
-      if (roundedTotals.isNotEmpty) "totals": roundedTotals,
-      if (dailyList.isNotEmpty) "daily_nutrition": dailyList,
-
-      // ✅ Add food context (limit size if needed)
-      // if (foodEntries.isNotEmpty) "food_entries": foodEntries.take(50).toList(),
-      "note": "Only available nutrition data is included.",
-    };
   }
 }

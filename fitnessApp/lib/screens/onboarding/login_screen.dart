@@ -11,6 +11,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:hive/hive.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,8 +21,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // bool isSignedIn = false;
   bool _obscureText = true;
+
   @override
   void initState() {
     super.initState();
@@ -35,20 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> requestInitialPermissions() async {
     await [Permission.notification, Permission.activityRecognition].request();
-
     await HealthService().requestHealthPermissions();
-  }
-
-  void _checkLogin() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool signedIn = prefs.getBool('isSignedIn') ?? false;
-
-    if (signedIn) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
-    }
   }
 
   @override
@@ -142,9 +130,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       .signInWithGoogle();
 
                   if (userscreds?.user?.email == null) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text("Login Failed")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Login failed or cancelled"),
+                      ),
+                    );
                   } else {
                     final uid = userscreds?.user?.uid;
                     final doc = await FirebaseFirestore.instance
@@ -154,33 +144,46 @@ class _LoginScreenState extends State<LoginScreen> {
                         .doc('profile')
                         .get();
 
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.setBool('isSignedIn', true);
+
+                    // Persistent login session using Hive
+                    final box = Hive.box('auth_session');
+                    await box.put('isSignedIn', true);
+
                     if (doc.exists) {
-                      SharedPreferences prefs =
-                          await SharedPreferences.getInstance();
                       await prefs.setBool('ProfileCompleted', true);
-                      await prefs.setBool('isSignedIn', true);
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => HomeScreen()),
-                      );
+                      if (mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HomeScreen(),
+                          ),
+                        );
+                      }
                     } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CompleteProfilescreen(),
-                        ),
-                      );
+                      if (mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CompleteProfilescreen(),
+                          ),
+                        );
+                      }
                     }
                   }
                 },
               ),
 
-              // const Spacer(),
               SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don’t have an account? "),
+                  const Text(
+                    "Don't have an account? ",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -208,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _inputField(String hint, {bool isPassword = false}) {
     return TextField(
-      style: TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white),
       cursorColor: Colors.white60,
       obscureText: isPassword ? _obscureText : false,
       decoration: InputDecoration(
@@ -275,9 +278,8 @@ class _LoginScreenState extends State<LoginScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onPressed: onPressed,
-
       icon: Icon(icon, color: Colors.white, size: 25),
-      label: Text(text, style: TextStyle(color: Colors.white)),
+      label: Text(text, style: const TextStyle(color: Colors.white)),
     );
   }
 }

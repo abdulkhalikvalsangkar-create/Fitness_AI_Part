@@ -37,8 +37,10 @@ void main() async {
 
   await Hive.openBox<ChatSession>('chats');
   await Hive.openBox<FileModel>('files');
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool signedIn = prefs.getBool('isSignedIn') ?? false;
+  await Hive.openBox('auth_session');
+
+  final box = Hive.box('auth_session');
+  bool signedIn = box.get('isSignedIn', defaultValue: false) ?? false;
   runApp(MyApp(isSignedIn: signedIn));
 }
 

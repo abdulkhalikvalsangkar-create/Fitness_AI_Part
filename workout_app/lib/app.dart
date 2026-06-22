@@ -12,7 +12,12 @@ import 'screens/settings/program_list_screen.dart';
 import 'screens/settings/manage_program_screen.dart';
 import 'screens/settings/manage_session_screen.dart';
 
-final authProvider = StateProvider<bool>((ref) => false);
+import 'package:hive/hive.dart';
+
+final authProvider = StateProvider<bool>((ref) {
+  final box = Hive.box('auth_session');
+  return box.get('isSignedIn', defaultValue: false) ?? false;
+});
 
 final routerProvider = Provider<GoRouter>((ref) {
   final isLoggedIn = ref.watch(authProvider);

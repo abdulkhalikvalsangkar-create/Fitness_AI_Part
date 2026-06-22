@@ -283,27 +283,33 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   }
 
   Future<void> loadHealthData() async {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-    final end = start.add(const Duration(days: 1));
+    try {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 1));
 
-    final data = await _healthService.fetchAllHealthData(
-      startTime: start,
-      endTime: end,
-    );
-    if (data.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Health data unavailable")));
-    }
-    if (mounted) {
-      setState(() {
-        healthData = data;
-        filterTodayData();
-        aggregateData();
-        calculateStrainStress();
-        calculateRecovery();
-      });
+      final data = await _healthService.fetchAllHealthData(
+        startTime: start,
+        endTime: end,
+      );
+      if (data.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Health data unavailable")));
+        }
+      }
+      if (mounted) {
+        setState(() {
+          healthData = data;
+          filterTodayData();
+          aggregateData();
+          calculateStrainStress();
+          calculateRecovery();
+        });
+      }
+    } catch (e) {
+      print("Error in loadHealthData: $e");
     }
   }
 

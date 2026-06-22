@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 
 class CompleteProfilescreen extends StatefulWidget {
   const CompleteProfilescreen({super.key});
@@ -115,7 +116,7 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
               // Row(
               //   mainAxisAlignment: MainAxisAlignment.center,
               //   children: [
-              //     const Text("Haven't received the code yet? "),
+              //     const Text("Haven't received the code yet? ", style: TextStyle(color: Colors.grey)),
               //     GestureDetector(
               //       onTap: () {},
               //       child: const Text(
@@ -129,7 +130,7 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
               // Row(
               //   mainAxisAlignment: MainAxisAlignment.center,
               //   children: [
-              //     const Text("Already have an account? "),
+              //     const Text("Already have an account? ", style: TextStyle(color: Colors.grey)),
               //     GestureDetector(
               //       onTap: () {
               //         Navigator.pop(
@@ -446,6 +447,10 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isSignedIn', true);
         await prefs.setBool('ProfileCompleted', true);
+        
+        final box = Hive.box('auth_session');
+        await box.put('isSignedIn', true);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => HomeScreen()),

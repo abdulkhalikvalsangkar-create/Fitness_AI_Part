@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:FitnessApp/screens/health_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -216,6 +217,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         await SharedPreferences.getInstance();
                     await prefs.setBool('isSignedIn', false);
                     await prefs.setBool('ProfileCompleted', false);
+
+                    final box = Hive.box('auth_session');
+                    await box.clear();
+
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(builder: (context) => LoginScreen()),

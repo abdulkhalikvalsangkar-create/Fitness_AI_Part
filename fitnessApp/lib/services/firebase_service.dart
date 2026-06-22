@@ -12,7 +12,7 @@ class FirebaseService {
       if (!_isGoogleSignInInitialized) {
         try {
           await googleSignIn.initialize(
-            clientId: "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
+            serverClientId: "151714532695-7j2n36jlhmd3jji6vn7nqjpkfuup7q4l.apps.googleusercontent.com",
           );
           _isGoogleSignInInitialized = true;
         } catch (e) {
@@ -26,7 +26,7 @@ class FirebaseService {
       final String? idToken = googleAuth.idToken;
 
       final clientAuth = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
-      final String? accessToken = clientAuth.accessToken;
+      final String accessToken = clientAuth.accessToken;
 
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: accessToken,

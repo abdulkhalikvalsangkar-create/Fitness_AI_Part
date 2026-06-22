@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:workout_app/services/remote_backup_service.dart';
 import '../../models/blueprint_models.dart';
 import '../../models/weight.dart';
 import '../../providers/history_provider.dart';
@@ -8,7 +9,8 @@ import '../../providers/programs_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/import_service.dart';
-import '../../services/remote_backup_service.dart';
+import 'package:hive/hive.dart';
+import '../../app.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -157,6 +159,16 @@ class SettingsScreen extends ConsumerWidget {
             leading: Icon(Icons.info_outline),
             title: Text('LiftLog Flutter'),
             subtitle: Text('Version 1.0.0'),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title: const Text('Log Out', style: TextStyle(color: Colors.redAccent)),
+            onTap: () async {
+              final box = Hive.box('auth_session');
+              await box.clear();
+              ref.read(authProvider.notifier).state = false;
+            },
           ),
         ],
       ),

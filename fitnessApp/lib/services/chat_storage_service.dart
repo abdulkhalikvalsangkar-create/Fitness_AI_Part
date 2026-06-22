@@ -91,13 +91,9 @@ class ChatStorageService {
         throw Exception("File with id $fileid not found");
       },
     );
-    if (file != null) {
-      // Delete the message if found
-      await file.delete();
-      print('File with id ${file.fileId} has been deleted');
-    } else {
-      print('File with id ${file.fileId} not found');
-    }
+    // Delete the message if found
+    await file.delete();
+    print('File with id ${file.fileId} has been deleted');
   }
 
   static String generateChatTitle(String? text) {

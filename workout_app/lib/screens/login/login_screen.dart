@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 import 'package:workout_app/app.dart';
 import 'package:workout_app/services/firebase_signin_service.dart';
 
@@ -14,24 +15,11 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  // bool isSignedIn = false;
   bool _obscureText = true;
+
   @override
   void initState() {
     super.initState();
-    _checkLogin();
-  }
-
-  void _checkLogin() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool signedIn = prefs.getBool('isSignedIn') ?? false;
-
-    // if (signedIn) {
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => LiftLogApp()),
-    //   );
-    // }
   }
 
   @override
@@ -46,7 +34,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 80),
-
               const Center(
                 child: Text(
                   "Login",
@@ -57,31 +44,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              const Text("E-mail", style: TextStyle(color: Colors.white)),
+              const Text("E-mail", style: const TextStyle(color: Colors.white)),
               const SizedBox(height: 8),
               _inputField("Enter your email"),
-
               const SizedBox(height: 20),
-
-              const Text("Password", style: TextStyle(color: Colors.white)),
+              const Text("Password",
+                  style: const TextStyle(color: Colors.white)),
               const SizedBox(height: 8),
               _inputField("Enter your password", isPassword: true),
-
               const SizedBox(height: 8),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => ForgotPasswordScreen(),
-                    //   ),
-                    // );
+                    // Reverted
                   },
                   child: const Text(
                     "Forgot Password?",
@@ -89,13 +66,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 10),
-
               _loginButton(),
-
               const SizedBox(height: 30),
-
               Row(
                 children: const [
                   Expanded(child: Divider()),
@@ -106,9 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Expanded(child: Divider()),
                 ],
               ),
-
               const SizedBox(height: 20),
-
               _socialButton("Login with Apple", Icons.apple, onPressed: () {}),
               const SizedBox(height: 8),
               _socialButton(
@@ -119,38 +90,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       await FirebaseService().signInWithGoogle();
 
                   if (userscreds?.user?.email == null) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text("Login Failed")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Login Failed")),
+                    );
                   } else {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
                     await prefs.setBool('isSignedIn', true);
-                    ref.read(authProvider.notifier).state = true;
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => CompleteProfilescreen(),
-                    //   ),
-                    // );
+
+                    // Persistent login session using Hive
+                    final box = Hive.box('auth_session');
+                    await box.put('isSignedIn', true);
+
+                    if (mounted) {
+                      ref.read(authProvider.notifier).state = true;
+                    }
                   }
                 },
               ),
-
-              // const Spacer(),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don’t have an account? "),
+                  const Text("Don't have an account? ",
+                      style: TextStyle(color: Colors.grey)),
                   GestureDetector(
                     onTap: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (context) => CreateAccountscreen(),
-                      //   ),
-                      // );
+                      // Reverted
                     },
                     child: const Text(
                       "Sign up",
@@ -159,7 +125,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 20),
             ],
           ),
@@ -170,6 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _inputField(String hint, {bool isPassword = false}) {
     return TextField(
+      style: const TextStyle(color: Colors.white),
       cursorColor: Colors.white60,
       obscureText: isPassword ? _obscureText : false,
       decoration: InputDecoration(
@@ -237,7 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       onPressed: onPressed,
       icon: Icon(icon, color: Colors.white, size: 25),
-      label: Text(text, style: TextStyle(color: Colors.white)),
+      label: Text(text, style: const TextStyle(color: Colors.white)),
     );
   }
 }

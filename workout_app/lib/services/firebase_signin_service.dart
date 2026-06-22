@@ -12,21 +12,22 @@ class FirebaseService {
       if (!_isGoogleSignInInitialized) {
         try {
           await googleSignIn.initialize(
-            clientId: "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
+            serverClientId:
+                "151714532695-epdeq9hiackpkqeqjqshbh1gfrfcooke.apps.googleusercontent.com",
           );
           _isGoogleSignInInitialized = true;
         } catch (e) {
           debugPrint("GoogleSignIn initialize error: $e");
         }
       }
-      final GoogleSignInAccount? googleUser = await googleSignIn.authenticate();
-      if (googleUser == null) return null;
+      final GoogleSignInAccount googleUser = await googleSignIn.authenticate();
 
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final String? idToken = googleAuth.idToken;
 
-      final clientAuth = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
-      final String? accessToken = clientAuth.accessToken;
+      final clientAuth = await googleUser.authorizationClient
+          .authorizeScopes(['email', 'profile']);
+      final String accessToken = clientAuth.accessToken;
 
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: accessToken,
