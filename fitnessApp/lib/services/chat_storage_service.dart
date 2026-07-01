@@ -141,6 +141,24 @@ class ChatStorageService {
     return contextParts.join("\n\n");
   }
 
+  /// MEMORY LAYER: Get chat session summary
+  /// Returns the compact summary stored in the session
+  static String? getSessionSummary(String chatId) {
+    final chat = getChat(chatId);
+    return chat?.summary;
+  }
+
+  /// MEMORY LAYER: Update chat session summary
+  /// Stores a compact summary and timestamp in the session
+  static void updateSessionSummary(String chatId, String summary) {
+    final chat = getChat(chatId);
+    if (chat == null) return;
+    
+    chat.summary = summary;
+    chat.lastSummarized = DateTime.now();
+    chat.save();
+  }
+
   static Future<void> removeFile({
     required Box<FileModel> box,
     required String fileid,

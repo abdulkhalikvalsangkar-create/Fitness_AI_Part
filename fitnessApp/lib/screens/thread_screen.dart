@@ -5,6 +5,7 @@ import 'package:FitnessApp/models/file_model.dart';
 import 'package:FitnessApp/services/chat_bot_api.dart';
 import 'package:FitnessApp/services/chat_storage_service.dart';
 import 'package:FitnessApp/services/file_saver.dart';
+import 'package:FitnessApp/services/memory_service.dart';
 import 'package:FitnessApp/helpers/file_processor.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -219,17 +220,9 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
       //   }
       // }
 
-      final reply = await OpenAIService.sendMessage(
+      final reply = await OpenAIService.sendMessageWithContext(
+        widget.chatId,
         getContext(),
-        // {
-        //   "role": "system",
-        //   "content": "Answer only using the provided context if available.",
-        // },
-        // {
-        //   "role": "user",
-        //   "content":
-        //       "IF you don't see anything just say I didn't get anything  $finalMessage",
-        // },
       );
       print("AI REPLY: $reply");
 
@@ -243,10 +236,20 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
         ),
       );
 
+      // Update local messages list
       setState(() {
         _messages.add({"role": "assistant", "content": reply, "type": "text"});
         _isLoading = false;
       });
+
+      // Check if we need to update memory
+      print("[ThreadScreen] Current message count: ${_messages.length}");
+      if (MemoryService.shouldSummarize(_messages.length)) {
+        print("[ThreadScreen] Starting memory update process");
+        final summary = await MemoryService.generateMemorySummary(_messages);
+        await MemoryService.updateUserMemory("default_user", summary);
+        print("[ThreadScreen] Memory update process complete");
+      }
     } catch (e) {
       print("ERROR: $e");
       setState(() {

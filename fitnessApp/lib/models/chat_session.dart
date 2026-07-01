@@ -14,5 +14,13 @@ class ChatSession extends HiveObject {
   @HiveField(2)
   List<ChatMessage> messages;
 
-  ChatSession({required this.id, required this.title, required this.messages});
+  // MEMORY LAYER: Compact summary of the chat session
+  @HiveField(3)
+  String? summary;
+
+  // MEMORY LAYER: Timestamp of when the summary was last generated
+  @HiveField(4)
+  DateTime? lastSummarized;
+
+  ChatSession({required this.id, required this.title, required this.messages, this.summary, this.lastSummarized});
 }

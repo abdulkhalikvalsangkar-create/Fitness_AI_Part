@@ -4,6 +4,8 @@ import 'package:FitnessApp/services/firebase_service.dart';
 import 'package:FitnessApp/services/firestore_service.dart';
 import 'package:FitnessApp/services/healthconnect.dart';
 import 'package:FitnessApp/services/chat_storage_service.dart';
+import 'package:FitnessApp/services/memory_service.dart';
+//import 'package:FitnessApp/models/user_memory.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -109,39 +111,73 @@ class OpenAIService {
     },
   ];
 
-  /// NEW (Phase 1): Send message with file context from current chat
-  /// Automatically retrieves all files attached to the chat session
-  /// and includes their content as context for the AI
-  /// This ensures the chatbot can reference all uploaded documents
+  /// NEW (Phase 1 + Memory Layer): Send message with full context
+  /// Includes: User Profile, Long-term Memory, Relevant Documents, Current Conversation
   static Future<String> sendMessageWithContext(
     String chatId,
     List<Map<String, dynamic>> messages,
   ) async {
-    // MODIFIED: Get combined context from all files in the chat
-    final fileContext = ChatStorageService.getCombinedFileContext(chatId);
-    
+    print("[OpenAIService] Starting sendMessageWithContext for chatId: $chatId");
     // Create a copy to avoid modifying the original
     final enhancedMessages = List<Map<String, dynamic>>.from(messages);
     
-    // If we have file context, inject it into the system message or create one
-    if (fileContext.isNotEmpty) {
-      // Find or create a system message
-      int systemMessageIndex = enhancedMessages.indexWhere((m) => m['role'] == 'system');
-      
-      if (systemMessageIndex >= 0) {
-        // Append context to existing system message
-        enhancedMessages[systemMessageIndex]['content'] =
-            "${enhancedMessages[systemMessageIndex]['content']}\n\n"
-            "Context from attached documents:\n$fileContext";
-      } else {
-        // Insert a new system message with context
-        enhancedMessages.insert(0, {
-          'role': 'system',
-          'content': 
-              'You have access to attached documents. Use them as context for answering questions.\n\n'
-              'Context from attached documents:\n$fileContext'
-        });
+    // Build comprehensive context
+    final contextParts = <String>[];
+    
+    // 1. User Profile
+    try {
+      final user = await StorageService.instance.getUserProfile();
+      if (user != null) {
+        final profileParts = <String>[];
+        if (user.name != null) profileParts.add("Name: ${user.name}");
+        if (user.age != null) profileParts.add("Age: ${user.age}");
+        if (user.gender != null) profileParts.add("Gender: ${user.gender}");
+        if (user.height != null) profileParts.add("Height: ${user.height} cm");
+        if (user.weight != null) profileParts.add("Weight: ${user.weight} kg");
+        if (profileParts.isNotEmpty) {
+          final profileContext = "User Profile:\n${profileParts.join('\n')}";
+          contextParts.add(profileContext);
+          print("[OpenAIService] Added user profile to context: $profileContext");
+        }
       }
+    } catch (e) {
+      print("[OpenAIService] Error loading user profile: $e");
+    }
+    
+    // 2. Long-term Memory
+    try {
+      final memory = await MemoryService.getUserMemory("default_user");
+      if (memory.summary.isNotEmpty) {
+        final memoryContext = "Long-term Memory:\n${memory.summary}";
+        contextParts.add(memoryContext);
+        print("[OpenAIService] Added long-term memory to context: $memoryContext");
+      } else {
+        print("[OpenAIService] No long-term memory available");
+      }
+    } catch (e) {
+      print("[OpenAIService] Error loading long-term memory: $e");
+    }
+    
+    // 3. Relevant Documents
+    final fileContext = ChatStorageService.getCombinedFileContext(chatId);
+    if (fileContext.isNotEmpty) {
+      final documentsContext = "Attached Documents:\n$fileContext";
+      contextParts.add(documentsContext);
+      print("[OpenAIService] Added documents to context: $documentsContext");
+    } else {
+      print("[OpenAIService] No attached documents for this chat");
+    }
+    
+    // Combine all context into a single system message
+    if (contextParts.isNotEmpty) {
+      final fullContext = contextParts.join('\n\n');
+      print("[OpenAIService] Full system context being sent:\n$fullContext");
+      enhancedMessages.insert(0, {
+        'role': 'system',
+        'content': fullContext
+      });
+    } else {
+      print("[OpenAIService] No additional context to add");
     }
     
     // Call the regular sendMessage with the enhanced message list
@@ -230,6 +266,7 @@ class OpenAIService {
   // }
   static Future<String> sendMessage(List<Map<String, dynamic>> messages) async {
     final workingMessages = List<Map<String, dynamic>>.from(messages);
+
     // workingMessages.any((message) => message['filetype'] == 'file');
     (workingMessages.isNotEmpty && workingMessages.last['type'] == 'file');
     //  Remove invalid messages
