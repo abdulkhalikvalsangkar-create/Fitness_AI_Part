@@ -5,6 +5,7 @@ import 'package:FitnessApp/firebase_options.dart';
 import 'package:FitnessApp/models/chat_message.dart';
 import 'package:FitnessApp/models/chat_session.dart';
 import 'package:FitnessApp/models/file_model.dart';
+import 'package:FitnessApp/models/user_memory.dart';
 import 'package:FitnessApp/screens/chat_bot_screen.dart';
 import 'package:FitnessApp/screens/health_analytics.dart';
 import 'package:FitnessApp/screens/profile_screen.dart';
@@ -13,6 +14,7 @@ import 'package:FitnessApp/screens/thread_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:FitnessApp/services/chat_storage_service.dart';
+import 'package:FitnessApp/services/memory_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -34,10 +36,21 @@ void main() async {
   Hive.registerAdapter(ChatMessageAdapter());
   Hive.registerAdapter(ChatSessionAdapter());
   Hive.registerAdapter(FileModelAdapter());
+  Hive.registerAdapter(UserMemoryAdapter());
 
   await Hive.openBox<ChatSession>('chats');
   await Hive.openBox<FileModel>('files');
   await Hive.openBox('auth_session');
+  await Hive.openBox<UserMemory>('memory');
+
+  // Set test memory for verification
+  print("[Main] Setting initial test memory");
+  final testMemory = await MemoryService.getUserMemory("default_user");
+  if (testMemory.summary.isEmpty) {
+    await MemoryService.updateUserMemory("default_user", 
+      "User Goals:\n- Lose 5 kg in 2 months\n- Build muscle mass\n\nDiet:\n- High protein diet (150g protein/day)\n- Avoid processed sugars\n\nWorkout Preferences:\n- Gym 4 times a week\n- Focus on strength training (squats, deadlifts, bench press)\n\nHealth Notes:\n- Knee pain when running\n- Prefer low-impact cardio\n"
+    );
+  }
 
   final box = Hive.box('auth_session');
   bool signedIn = box.get('isSignedIn', defaultValue: false) ?? false;

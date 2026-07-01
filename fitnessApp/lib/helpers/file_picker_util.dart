@@ -5,15 +5,25 @@ import 'package:file_picker/file_picker.dart';
 import 'package:hive/hive.dart';
 
 class FilePickerUtil {
+  // MODIFIED: Updated to support all Phase 1 document types: pdf, doc, txt, md
   Future<PlatformFile?> pickFile() async {
+    print("DEBUG: New file picker called");
+
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'png'],
+      allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'md', 'pptx'],
     );
 
+    print("DEBUG: Picker result = $result");
+
     if (result != null) {
+      print(
+        "DEBUG: Selected file = ${result.files.first.name}",
+      );
       return result.files.first;
     }
+
+    print("DEBUG: No file selected");
     return null;
   }
 

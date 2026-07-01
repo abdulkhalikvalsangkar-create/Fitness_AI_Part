@@ -23,13 +23,15 @@ class FileModelAdapter extends TypeAdapter<FileModel> {
       fileId: fields[3] as String,
       uploadDate: fields[4] as DateTime,
       contentsummary: fields[5] as String?,
+      fullText: fields[6] as String?,
+      fileExtension: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FileModel obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.path)
       ..writeByte(1)
@@ -41,7 +43,11 @@ class FileModelAdapter extends TypeAdapter<FileModel> {
       ..writeByte(4)
       ..write(obj.uploadDate)
       ..writeByte(5)
-      ..write(obj.contentsummary);
+      ..write(obj.contentsummary)
+      ..writeByte(6)
+      ..write(obj.fullText)
+      ..writeByte(7)
+      ..write(obj.fileExtension);
   }
 
   @override

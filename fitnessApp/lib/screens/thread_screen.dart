@@ -4,6 +4,9 @@ import 'package:FitnessApp/models/chat_message.dart';
 import 'package:FitnessApp/models/file_model.dart';
 import 'package:FitnessApp/services/chat_bot_api.dart';
 import 'package:FitnessApp/services/chat_storage_service.dart';
+import 'package:FitnessApp/services/file_saver.dart';
+import 'package:FitnessApp/services/memory_service.dart';
+import 'package:FitnessApp/helpers/file_processor.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:lottie/lottie.dart';
@@ -217,17 +220,9 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
       //   }
       // }
 
-      final reply = await OpenAIService.sendMessage(
+      final reply = await OpenAIService.sendMessageWithContext(
+        widget.chatId,
         getContext(),
-        // {
-        //   "role": "system",
-        //   "content": "Answer only using the provided context if available.",
-        // },
-        // {
-        //   "role": "user",
-        //   "content":
-        //       "IF you don't see anything just say I didn't get anything  $finalMessage",
-        // },
       );
       print("AI REPLY: $reply");
 
@@ -241,10 +236,20 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
         ),
       );
 
+      // Update local messages list
       setState(() {
         _messages.add({"role": "assistant", "content": reply, "type": "text"});
         _isLoading = false;
       });
+
+      // Check if we need to update memory
+      print("[ThreadScreen] Current message count: ${_messages.length}");
+      if (MemoryService.shouldSummarize(_messages.length)) {
+        print("[ThreadScreen] Starting memory update process");
+        final summary = await MemoryService.generateMemorySummary(_messages);
+        await MemoryService.updateUserMemory("default_user", summary);
+        print("[ThreadScreen] Memory update process complete");
+      }
     } catch (e) {
       print("ERROR: $e");
       setState(() {
@@ -281,14 +286,15 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // MODIFIED (Phase 1): Enhanced icon detection for all document types
+                  // Now handles: pdf, docx, doc, txt, md, pptx
                   Icon(
-                    file.type == "pdf" ? Icons.picture_as_pdf : Icons.image,
+                    _getFileIcon(file.type),
                     color: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      // file.path.split("/").last,
                       file.name,
                       style: const TextStyle(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
@@ -335,6 +341,26 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
     );
   }
 
+  /// NEW (Phase 1): Get appropriate icon for document type
+  /// Maps file extensions to relevant Material Icons
+  IconData _getFileIcon(String fileType) {
+    switch (fileType.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'docx':
+      case 'doc':
+        return Icons.description;
+      case 'txt':
+        return Icons.text_fields;
+      case 'md':
+        return Icons.code;
+      case 'pptx':
+        return Icons.slideshow;
+      default:
+        return Icons.attach_file;
+    }
+  }
+
   Widget _inputBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -365,6 +391,12 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
               ),
               leading: const Icon(Icons.search, color: Colors.white54),
               trailing: [
+                // MODIFIED (Phase 1): Added file upload button during active chat
+                // Allows users to attach documents while chatting without closing conversation
+                IconButton(
+                  icon: const Icon(Icons.attach_file, color: Colors.white54),
+                  onPressed: _uploadFileToChat,
+                ),
                 IconButton(
                   icon: _isLoading
                       ? const SizedBox(
@@ -384,6 +416,60 @@ class _ChatThreadScreenstate extends State<ChatthreadScreen> {
         ),
       ),
     );
+  }
+
+  /// NEW (Phase 1): Upload file to current chat session
+  /// Allows users to attach documents during an active conversation
+  /// Processes the file and creates a file message in the chat
+  Future<void> _uploadFileToChat() async {
+    try {
+      final file = await pickAndSave();
+      if (file == null) return;
+
+      // Process the file (extract text and generate summary)
+      await FileProcessingService.processFile(file.fileId);
+
+      // Attach file to current chat
+      ChatStorageService.attachFileToChat(widget.chatId, file);
+
+      // Create a file message for the chat
+      ChatStorageService.saveMessage(
+        widget.chatId,
+        ChatMessage(
+          role: "user",
+          type: "file",
+          fileId: file.fileId,
+          content: "Attached document: ${file.name}",
+          timestamp: DateTime.now(),
+        ),
+      );
+
+      // Update the local messages list to show the file
+      setState(() {
+        _messages.add({
+          "role": "user",
+          "type": "file",
+          "fileId": file.fileId,
+          "content": file.name,
+        });
+      });
+
+      // Show a brief notification
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("File '${file.name}' attached successfully"),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print("Error uploading file to chat: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error attaching file. Please try again."),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
