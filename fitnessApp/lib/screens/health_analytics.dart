@@ -236,6 +236,9 @@ import 'package:health/health.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 
+import 'package:FitnessApp/services/csv_health_service.dart';
+import 'package:FitnessApp/models/dashboard_filter.dart';
+
 class HealthDashboardScreen extends StatefulWidget {
   const HealthDashboardScreen({super.key});
 
@@ -245,6 +248,7 @@ class HealthDashboardScreen extends StatefulWidget {
 
 class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   final HealthService _healthService = HealthService();
+  final CsvHealthService _csvHealthService = CsvHealthService();
   late List<HealthDataPoint> todayData;
   late List<HealthDataPoint> healthData;
   Duration sleepDuration = Duration.zero;
@@ -261,6 +265,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   List<Session> sessions = [];
   double recoveryPercent = 0;
   Timer? _updateTimer;
+  DateTime? selectedRecordDate;
+  DashboardFilter selectedFilter = DashboardFilter.day;
 
   @override
   void initState() {
@@ -282,8 +288,70 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
     super.dispose();
   }
 
+  // Future<void> loadHealthData() async {
+  //   try {
+  //     final now = DateTime.now();
+  //     final start = DateTime(now.year, now.month, now.day);
+  //     final end = start.add(const Duration(days: 1));
+  //
+  //     final data = await _healthService.fetchAllHealthData(
+  //       startTime: start,
+  //       endTime: end,
+  //     );
+  //     if (data.isEmpty) {
+  //       if (mounted) {
+  //         ScaffoldMessenger.of(
+  //           context,
+  //         ).showSnackBar(const SnackBar(content: Text("Health data unavailable")));
+  //       }
+  //     }
+  //     if (mounted) {
+  //       setState(() {
+  //         healthData = data;
+  //         filterTodayData();
+  //         aggregateData();
+  //         calculateStrainStress();
+  //         calculateRecovery();
+  //       });
+  //     }
+  //   } catch (e) {
+  //     print("Error in loadHealthData: $e");
+  //   }
+  // }
+
   Future<void> loadHealthData() async {
     try {
+      final csvData = await _csvHealthService.getLatestUserData();
+
+      if (csvData != null) {
+        setState(() {
+          selectedRecordDate = csvData.date;
+          recoveryPercent = csvData.recoveryScore / 100;
+
+          strain = csvData.strain;
+
+          sleepDuration = Duration(
+            minutes: (csvData.sleepHours * 60).round(),
+          );
+
+          calories = csvData.caloriesBurned;
+
+          steps = csvData.steps;
+
+          heartRate = csvData.heartRate.round();
+
+          restingHR = csvData.restingHeartRate.round();
+
+          globalWeight = csvData.weight;
+        });
+
+        return;
+      }
+
+      // -------------------------
+      // Fallback to Health Connect
+      // -------------------------
+
       final now = DateTime.now();
       final start = DateTime(now.year, now.month, now.day);
       final end = start.add(const Duration(days: 1));
@@ -292,13 +360,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
         startTime: start,
         endTime: end,
       );
+
       if (data.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Health data unavailable")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Health data unavailable"),
+            ),
+          );
         }
       }
+
       if (mounted) {
         setState(() {
           healthData = data;
@@ -310,6 +382,21 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
       }
     } catch (e) {
       print("Error in loadHealthData: $e");
+    }
+  }
+
+  String _getDashboardDateText() {
+    final date = selectedRecordDate ?? DateTime.now();
+
+    switch (selectedFilter) {
+      case DashboardFilter.day:
+        return DateFormat('EEEE, d MMMM yyyy').format(date);
+
+      case DashboardFilter.month:
+        return DateFormat('MMMM yyyy').format(date);
+
+      case DashboardFilter.year:
+        return DateFormat('yyyy').format(date);
     }
   }
 
@@ -454,44 +541,135 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 // children: [
                 SizedBox(height: 15),
                 Row(
-                  spacing: 50,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      DateFormat('EEEE, d MMMM').format(DateTime.now()),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        _getDashboardDateText(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    // IconButton(
-                    //   onPressed: () async {
-                    //     //   final health = Health();
 
-                    //     //   await health.configure();
+                    IconButton(
+                      icon: const Icon(
+                        Icons.calendar_month,
+                        color: Colors.white,
+                      ),
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedRecordDate ?? DateTime.now(),
+                          firstDate: DateTime(2023, 1, 1),
+                          lastDate: DateTime(2023, 12, 31),
+                        );
 
-                    //     //   final has = await health.hasPermissions([
-                    //     //     HealthDataType.WORKOUT,
-                    //     //   ]);
+                        if (picked == null) return;
 
-                    //     //   if (has == true) {
-                    //     //     print("Already has permission ✅");
+                        _csvHealthService.selectedDate = picked;
+                        _csvHealthService.selectedFilter = selectedFilter;
+                        await loadHealthData();
+                      },
+                    ),
+                  ],
+                ),
+                // Row(
+                //   spacing: 50,
+                //   children: [
+                //     Text(
+                //       DateFormat('EEEE, d MMMM yyyy').format(
+                //         selectedRecordDate ?? DateTime.now(),
+                //       ),
+                //       style: const TextStyle(
+                //         color: Colors.white,
+                //         fontSize: 22,
+                //         fontWeight: FontWeight.bold,
+                //       ),
+                //     ),
+                //     // IconButton(
+                //     //   onPressed: () async {
+                //     //     //   final health = Health();
+                //
+                //     //     //   await health.configure();
+                //
+                //     //     //   final has = await health.hasPermissions([
+                //     //     //     HealthDataType.WORKOUT,
+                //     //     //   ]);
+                //
+                //     //     //   if (has == true) {
+                //     //     //     print("Already has permission ✅");
+                //
+                //     //     //     await HealthService().getWorkout(); // proceed directly
+                //     //     //   } else {
+                //     //     //     final granted = await health.requestAuthorization([
+                //     //     //       HealthDataType.WORKOUT,
+                //     //     //     ]);
+                //
+                //     //     //     if (granted) {
+                //     //     //       await HealthService().getWorkout();
+                //     //     //     } else {
+                //     //     //       print("Permission denied ❌");
+                //     //     //     }
+                //     //     //   }
+                //     //   },
+                //     //   icon: Icon(Icons.refresh),
+                //     // ),
+                //   ],
+                // ),
 
-                    //     //     await HealthService().getWorkout(); // proceed directly
-                    //     //   } else {
-                    //     //     final granted = await health.requestAuthorization([
-                    //     //       HealthDataType.WORKOUT,
-                    //     //     ]);
+                const SizedBox(height: 12),
 
-                    //     //     if (granted) {
-                    //     //       await HealthService().getWorkout();
-                    //     //     } else {
-                    //     //       print("Permission denied ❌");
-                    //     //     }
-                    //     //   }
-                    //   },
-                    //   icon: Icon(Icons.refresh),
-                    // ),
+                Row(
+                  children: [
+
+                    ChoiceChip(
+                      label: const Text("Day"),
+                      selected: selectedFilter == DashboardFilter.day,
+                      onSelected: (_) async {
+                        setState(() {
+                          selectedFilter = DashboardFilter.day;
+                        });
+
+                        _csvHealthService.selectedFilter = selectedFilter;
+
+                        await loadHealthData();
+                      },
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    ChoiceChip(
+                      label: const Text("Month"),
+                      selected: selectedFilter == DashboardFilter.month,
+                      onSelected: (_) async {
+                        setState(() {
+                          selectedFilter = DashboardFilter.month;
+                        });
+
+                        _csvHealthService.selectedFilter = selectedFilter;
+
+                        await loadHealthData();
+                      },
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    ChoiceChip(
+                      label: const Text("Year"),
+                      selected: selectedFilter == DashboardFilter.year,
+                      onSelected: (_) async {
+                        setState(() {
+                          selectedFilter = DashboardFilter.year;
+                        });
+
+                        _csvHealthService.selectedFilter = selectedFilter;
+
+                        await loadHealthData();
+                      },
+                    ),
                   ],
                 ),
                 SizedBox(height: 15),

@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
+import 'package:FitnessApp/services/user_profile_mapper.dart';
+
 class CompleteProfilescreen extends StatefulWidget {
   const CompleteProfilescreen({super.key});
 
@@ -444,6 +446,7 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
         );
 
         await StorageService.instance.saveUserProfile(user);
+        await UserProfileMapper.assignCsvUserIfNeeded();
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isSignedIn', true);
         await prefs.setBool('ProfileCompleted', true);
