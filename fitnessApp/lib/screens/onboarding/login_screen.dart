@@ -13,6 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive/hive.dart';
 
+import 'package:FitnessApp/services/user_profile_mapper.dart';
+import 'package:FitnessApp/screens/onboarding/csv_login_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -152,8 +155,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     final box = Hive.box('auth_session');
                     await box.put('isSignedIn', true);
 
+
                     if (doc.exists) {
                       await prefs.setBool('ProfileCompleted', true);
+
+                      // Assign a CSV profile once for this Firebase user.
+                      await UserProfileMapper.assignCsvUserIfNeeded();
+
                       if (mounted) {
                         Navigator.pushReplacement(
                           context,
@@ -162,7 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       }
-                    } else {
+                    }else {
+                      await UserProfileMapper.assignCsvUserIfNeeded();
+
                       if (mounted) {
                         Navigator.pushReplacement(
                           context,
@@ -172,9 +182,46 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       }
                     }
+
+
+                    // if (doc.exists) {
+                    //   await prefs.setBool('ProfileCompleted', true);
+                    //   if (mounted) {
+                    //     Navigator.pushReplacement(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (context) => const HomeScreen(),
+                    //       ),
+                    //     );
+                    //   }
+                    // } else {
+                    //   if (mounted) {
+                    //     Navigator.pushReplacement(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (context) => const CompleteProfilescreen(),
+                    //       ),
+                    //     );
+                    //   }
+                    // }
                   }
                 },
+              ),const SizedBox(height: 8),
+
+              _socialButton(
+                "Login with CSV Dataset",
+                Icons.dataset,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CsvLoginScreen(),
+                    ),
+                  );
+                },
               ),
+
+              // const SizedBox(height: 8),
 
               SizedBox(height: 8),
               Row(

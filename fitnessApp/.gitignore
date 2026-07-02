@@ -54,3 +54,5 @@ app.*.map.json
 key.properties
 hive/
 
+# FVM Version Cache
+.fvm/
