@@ -16,6 +16,8 @@ import 'package:hive/hive.dart';
 import 'package:FitnessApp/services/user_profile_mapper.dart';
 import 'package:FitnessApp/screens/onboarding/csv_login_screen.dart';
 
+import '../../services/csv_login_service.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -129,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 "Login with Google",
                 Icons.g_mobiledata,
                 onPressed: () async {
+                  await CsvLoginService.logout();
                   final UserCredential? userscreds = await FirebaseService()
                       .signInWithGoogle();
 
@@ -160,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       await prefs.setBool('ProfileCompleted', true);
 
                       // Assign a CSV profile once for this Firebase user.
-                      await UserProfileMapper.assignCsvUserIfNeeded();
+                      // await UserProfileMapper.assignCsvUserIfNeeded();
 
                       if (mounted) {
                         Navigator.pushReplacement(
@@ -171,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       }
                     }else {
-                      await UserProfileMapper.assignCsvUserIfNeeded();
+                      // await UserProfileMapper.assignCsvUserIfNeeded();
 
                       if (mounted) {
                         Navigator.pushReplacement(

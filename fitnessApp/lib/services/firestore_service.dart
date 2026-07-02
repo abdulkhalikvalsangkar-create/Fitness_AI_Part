@@ -3,6 +3,9 @@ import 'package:FitnessApp/models/session_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:FitnessApp/services/csv_login_service.dart';
+import 'package:FitnessApp/services/csv_health_service.dart';
+
 class StorageService {
   static StorageService? _instance;
   // SharedPreferences? _prefs;
@@ -106,7 +109,48 @@ class StorageService {
 
   //   return UserProfile.fromJson(doc.data()!);
   // }
+  // Future<UserProfile?> getUserProfile() async {
+  //   final uid = FirebaseAuth.instance.currentUser!.uid;
+  //
+  //   final doc = await FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(uid)
+  //       .collection('userprofile')
+  //       .doc('profile')
+  //       .get();
+  //
+  //   if (!doc.exists) {
+  //     print("Doc doesn't exit");
+  //     return null;
+  //   }
+  //   // print(doc.data());
+  //
+  //   var user = UserProfile.fromJson(doc.data()!);
+  //   print("User $user");
+  //   return user;
+  // }
+
   Future<UserProfile?> getUserProfile() async {
+    // First check whether a CSV user is logged in
+    final csvUserId = await CsvLoginService.getLoggedInUser();
+
+    if (csvUserId != null) {
+      final csvProfile =
+      await CsvHealthService().getProfileByUserId(csvUserId);
+
+      if (csvProfile == null) return null;
+
+      return UserProfile(
+        uid: csvProfile.userId,
+        name: csvProfile.userId,
+        age: csvProfile.age.toString(),
+        height: csvProfile.height,
+        weight: csvProfile.weight,
+        gender: csvProfile.gender,
+      );
+    }
+
+    // Normal Firebase user
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     final doc = await FirebaseFirestore.instance
@@ -117,13 +161,9 @@ class StorageService {
         .get();
 
     if (!doc.exists) {
-      print("Doc doesn't exit");
       return null;
     }
-    // print(doc.data());
 
-    var user = UserProfile.fromJson(doc.data()!);
-    print("User $user");
-    return user;
+    return UserProfile.fromJson(doc.data()!);
   }
 }

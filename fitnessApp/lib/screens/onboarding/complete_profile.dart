@@ -10,6 +10,8 @@ import 'package:hive/hive.dart';
 
 import 'package:FitnessApp/services/user_profile_mapper.dart';
 
+import '../../services/csv_health_service.dart';
+
 class CompleteProfilescreen extends StatefulWidget {
   const CompleteProfilescreen({super.key});
 
@@ -18,6 +20,7 @@ class CompleteProfilescreen extends StatefulWidget {
 }
 
 class _CompleteProfilescreen extends State<CompleteProfilescreen> {
+  final CsvHealthService csvService = CsvHealthService();
   TextEditingController heightController = TextEditingController();
   TextEditingController ageController = TextEditingController();
   TextEditingController weightController = TextEditingController();
@@ -26,6 +29,32 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
   String? gender;
   int feet = 0;
   int inches = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCsvProfile();
+  }
+
+  Future<void> _loadCsvProfile() async {
+    final profile = await csvService.getCurrentCsvUserProfile();
+
+    if (profile == null) return;
+
+    ageController.text = profile.age.toString();
+    weightController.text = profile.weight.toString();
+    gender = profile.gender;
+
+    // Convert cm to feet/inches
+    final totalInches = profile.height / 2.54;
+    feet = (totalInches ~/ 12);
+    inches = (totalInches % 12).round();
+
+    heightController.text = "$feet ft $inches in";
+
+    setState(() {});
+  }
+
   @override
   void dispose() {
     genderController.dispose();
@@ -446,7 +475,7 @@ class _CompleteProfilescreen extends State<CompleteProfilescreen> {
         );
 
         await StorageService.instance.saveUserProfile(user);
-        await UserProfileMapper.assignCsvUserIfNeeded();
+        // await UserProfileMapper.assignCsvUserIfNeeded();
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isSignedIn', true);
         await prefs.setBool('ProfileCompleted', true);

@@ -48,6 +48,12 @@ class CsvHealthService {
         DashboardData(
           userId: row['user_id'] ?? '',
 
+          age: int.tryParse(row['age'] ?? '0') ?? 0,
+
+          gender: row['gender'] ?? '',
+
+          height: double.tryParse(row['height_cm'] ?? '0') ?? 0,
+
           date: DateTime.tryParse(row['date'] ?? '') ?? DateTime.now(),
 
           recoveryScore:
@@ -235,6 +241,11 @@ class CsvHealthService {
 
     final averaged = DashboardData(
       userId: latest.userId,
+      age: latest.age,
+
+      gender: latest.gender,
+
+      height: latest.height,
       date: latest.date,
 
       recoveryScore: average((e) => e.recoveryScore),
@@ -273,9 +284,34 @@ class CsvHealthService {
     return averaged;
   }
 
+  Future<DashboardData?> getProfileByUserId(String userId) async {
+    final data = await _loadDataset();
+
+    final users = data.where((e) => e.userId == userId).toList();
+
+    if (users.isEmpty) {
+      return null;
+    }
+
+    return users.first;
+  }
+
   Future<List<DashboardData>> getUserHistory(String userId) async {
     final data = await _loadDataset();
 
     return data.where((e) => e.userId == userId).toList();
+  }
+  Future<DashboardData?> getCurrentCsvUserProfile() async {
+    final csvUserId = await UserProfileMapper.getCsvUserId();
+
+    if (csvUserId == null) return null;
+
+    final data = await _loadDataset();
+
+    final users = data.where((e) => e.userId == csvUserId).toList();
+
+    if (users.isEmpty) return null;
+
+    return users.first;
   }
 }
