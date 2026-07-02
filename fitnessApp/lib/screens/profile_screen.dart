@@ -10,6 +10,8 @@ import 'package:FitnessApp/screens/health_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
+import '../services/csv_login_service.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -214,9 +216,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 GestureDetector(
                   onTap: () async {
                     SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
+                    await SharedPreferences.getInstance();
+
                     await prefs.setBool('isSignedIn', false);
                     await prefs.setBool('ProfileCompleted', false);
+
+                    // Clear CSV login session
+                    await CsvLoginService.logout();
 
                     final box = Hive.box('auth_session');
                     await box.clear();
@@ -224,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(builder: (context) => LoginScreen()),
-                      (route) => false,
+                          (route) => false,
                     );
                   },
                   child: Container(

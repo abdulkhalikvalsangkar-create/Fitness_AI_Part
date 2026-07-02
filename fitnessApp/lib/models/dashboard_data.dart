@@ -11,6 +11,12 @@ class DashboardData {
   final int steps;
   final double caloriesBurned;
 
+  final int age;
+
+  final String gender;
+
+  final double height;
+
   final double weight;
 
   final double heartRate;
@@ -25,6 +31,10 @@ class DashboardData {
 
   const DashboardData({
     required this.userId,
+    required this.age,
+    required this.gender,
+    required this.height,
+
     required this.date,
     required this.recoveryScore,
     required this.strain,
