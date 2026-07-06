@@ -51,4 +51,31 @@ class DashboardData {
     required this.activityType,
     required this.workoutMinutes,
   });
+
+  /// SERVER MIGRATION: Serialize a record so it can be sent to the backend as
+  /// part of `context.csv_health_data`. The CSV itself stays on the device;
+  /// only the relevant records travel with each request.
+  Map<String, dynamic> toJson() {
+    return {
+      'user_id': userId,
+      'date': date.toIso8601String(),
+      'age': age,
+      'gender': gender,
+      'height_cm': height,
+      'weight_kg': weight,
+      'recovery_score': recoveryScore,
+      'day_strain': strain,
+      'sleep_hours': sleepHours,
+      'sleep_efficiency': sleepEfficiency,
+      'steps': steps,
+      'calories_burned': caloriesBurned,
+      'avg_heart_rate': heartRate,
+      'resting_heart_rate': restingHeartRate,
+      'protein': protein,
+      'carbs': carbs,
+      'fat': fat,
+      'activity_type': activityType,
+      'activity_duration_min': workoutMinutes,
+    };
+  }
 }

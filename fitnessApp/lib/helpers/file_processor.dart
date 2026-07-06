@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:FitnessApp/models/file_model.dart';
+import 'package:FitnessApp/services/api_service.dart';
 import 'package:hive/hive.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 // import 'package:docx/docx.dart' as docx_lib;
 
 // MODIFIED: Complete rewrite to support multiple document types (Phase 1)
@@ -173,28 +171,12 @@ class FileProcessingService {
     }
   }
 
-  /// MODIFIED: OpenAI summarization API call
-  /// Sends extracted text to GPT-4o-mini for intelligent summarization
+  /// SERVER MIGRATION: Document summarization now goes through the backend
+  /// instead of calling OpenAI directly. Sends the extracted text and returns
+  /// the model's summary.
   static Future<String> sendMessage(List<Map<String, dynamic>> messages) async {
-    final String apiKey = dotenv.env['OPENAI_API_KEY'] ?? "";
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $apiKey",
-      },
-      body: jsonEncode({
-        "model": "gpt-4o-mini",
-        "messages": messages,
-        "temperature": 0.7,
-      }),
-    );
-    final data = jsonDecode(response.body);
-
-    if (!data.containsKey("choices")) {
-      throw Exception("OpenAI API error: ${response.body}");
-    }
-    print(data["choices"][0]["message"]["content"] ?? "");
-    return data["choices"][0]["message"]["content"] ?? "";
+    final result = await ApiService.chat(messages: messages);
+    print(result.reply);
+    return result.reply;
   }
 }

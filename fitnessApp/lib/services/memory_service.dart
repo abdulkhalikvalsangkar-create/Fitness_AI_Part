@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'package:FitnessApp/models/user_memory.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import 'package:FitnessApp/services/api_service.dart';
 import 'package:hive/hive.dart';
 
 /// MEMORY LAYER: Service to manage cross-chat user memory
 /// Handles memory retrieval, updates, and summarization logic
+///
+/// SERVER MIGRATION: Summary generation now goes through the backend
+/// (POST / with update_memory: true) instead of calling OpenAI directly.
 class MemoryService {
   static const int _summarizeMessageThreshold = 03;
-  static String get _apiKey => dotenv.env['OPENAI_API_KEY'] ?? "";
 
   static final _memoryBox = Hive.box<UserMemory>('memory');
 
@@ -56,37 +56,21 @@ class MemoryService {
     print("[MemoryService] Starting memory summary generation for ${messages.length} messages");
     if (messages.isEmpty) return "";
 
-    // Prepare messages for OpenAI
-    final systemPrompt = {
-      "role": "system",
-      "content": "Summarize the key information from this conversation for long-term memory. Focus on user goals, preferences, health notes, workout plans, diet information, and any important personal details. Keep it concise (max 500 words) and well-organized."
-    };
-
-    final conversationForSummary = [systemPrompt, ...messages];
-
-    // Call OpenAI API
+    // Call the backend, which generates the updated long-term memory summary.
     try {
-      print("[MemoryService] Calling OpenAI API for summary generation");
-      final response = await http.post(
-        Uri.parse("https://api.openai.com/v1/chat/completions"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $_apiKey",
-        },
-        body: jsonEncode({
-          "model": "gpt-4o-mini",
-          "messages": conversationForSummary,
-          "temperature": 0.5,
-        }),
+      print("[MemoryService] Calling backend for summary generation");
+      final result = await ApiService.chat(
+        messages: messages,
+        updateMemory: true,
       );
 
-      final data = jsonDecode(response.body);
-      if (data.containsKey("choices")) {
-        final summary = data["choices"][0]["message"]["content"];
-        print("[MemoryService] OpenAI API returned summary: $summary");
+      // Prefer the dedicated summary field; fall back to the assistant reply.
+      final summary = result.updatedMemorySummary ?? result.reply;
+      if (summary.isNotEmpty) {
+        print("[MemoryService] Backend returned summary: $summary");
         return summary;
       } else {
-        print("[MemoryService] OpenAI API response missing choices: $data");
+        print("[MemoryService] Backend returned an empty summary");
       }
     } catch (e) {
       print("[MemoryService] Error generating memory summary: $e");
