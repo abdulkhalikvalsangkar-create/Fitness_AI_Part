@@ -9,9 +9,9 @@ class FilePickerUtil {
   Future<PlatformFile?> pickFile() async {
     print("DEBUG: New file picker called");
 
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'md', 'pptx'],
+      allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'md', 'pptx', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'],
     );
 
     print("DEBUG: Picker result = $result");

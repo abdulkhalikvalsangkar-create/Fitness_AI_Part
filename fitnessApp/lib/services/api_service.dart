@@ -51,6 +51,7 @@ class ApiService {
   }
 
   static Uri get _chatEndpoint => Uri.parse('$baseUrl/');
+  static Uri get _ocrEndpoint => Uri.parse('$baseUrl/api/ocr/process-image');
 
   /// Send a chat request to the backend and return the assistant reply.
   static Future<ChatApiResult> chat({
@@ -104,5 +105,33 @@ class ApiService {
           ? updatedMemory
           : null,
     );
+  }
+
+  /// Send an image to OCR endpoint and return extracted text.
+  static Future<String> processImageOCR({
+    required String filePath,
+    required String fileName,
+  }) async {
+    print('[ApiService] POST $_ocrEndpoint for file: $fileName');
+
+    final request = http.MultipartRequest('POST', _ocrEndpoint);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+    request.fields['return_type'] = 'text';
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      print('[ApiService] OCR error ${response.statusCode}: ${response.body}');
+      throw Exception('OCR error (${response.statusCode})');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (data['success'] == false) {
+      print('[ApiService] OCR returned success=false: ${response.body}');
+      throw Exception('OCR failed: ${data['error']}');
+    }
+
+    return data['data'] as String;
   }
 }

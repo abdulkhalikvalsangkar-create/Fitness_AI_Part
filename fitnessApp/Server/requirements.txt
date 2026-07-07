@@ -1,0 +1,17 @@
+# Web Framework
+Flask>=3.0.0
+Werkzeug>=3.0.0
+
+# AI/LLM
+openai>=1.0.0
+
+# OCR & Image Processing
+Pillow>=10.0.0
+pdf2image>=1.16.0
+pytesseract>=0.3.10
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+
+# Utilities
+python-pptx>=0.6.23
+tqdm>=4.65.0

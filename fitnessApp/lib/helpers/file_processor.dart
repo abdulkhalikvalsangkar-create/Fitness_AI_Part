@@ -43,12 +43,18 @@ class FileProcessingService {
   }
 
   /// MODIFIED: Unified text extraction method that routes to appropriate extractor
-  /// based on file type. Handles: pdf, docx, doc, txt, md, pptx
+  /// based on file type. Handles: pdf, docx, doc, txt, md, pptx, jpg, jpeg, png, etc.
   static Future<String> _extractTextByType(FileModel file) async {
     final extension = file.fileExtension?.toLowerCase() ?? 
                       file.name.split('.').last.toLowerCase();
     
     print("Extracting text for file type: $extension");
+    
+    // Check for image file types to use OCR
+    const imageExtensions = {'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'};
+    if (imageExtensions.contains(extension)) {
+      return await ApiService.processImageOCR(filePath: file.path, fileName: file.name);
+    }
     
     switch (extension) {
       case 'pdf':
