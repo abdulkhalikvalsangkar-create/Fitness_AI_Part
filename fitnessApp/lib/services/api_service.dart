@@ -58,9 +58,11 @@ class ApiService {
     required List<Map<String, dynamic>> messages,
     Map<String, dynamic>? context,
     bool updateMemory = false,
+    String model = "openai",
   }) async {
     final body = <String, dynamic>{
       'messages': messages,
+      'model': model,
     };
     if (context != null && context.isNotEmpty) {
       body['context'] = context;
