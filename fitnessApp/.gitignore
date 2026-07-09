@@ -56,3 +56,6 @@ hive/
 
 # FVM Version Cache
 .fvm/
+
+# Zip files
+*.zip

@@ -41,7 +41,7 @@ dependencies:
   lottie: ^3.3.2
   health: ^13.3.1
   percent_indicator: ^4.2.5
-  syncfusion_flutter_charts: ^32.2.8
+  syncfusion_flutter_charts: ^34.1.29
   hive_flutter: ^1.1.0
   hive: ^2.2.3
   firebase_auth: ^6.3.0
@@ -49,13 +49,13 @@ dependencies:
   firebase_messaging: ^16.1.3
   google_sign_in: ^7.2.0
   file_picker: ^11.0.1
-  open_file: ^3.5.11
-  syncfusion_flutter_pdf: ^32.2.9
+  open_file: ^4.0.0
+  syncfusion_flutter_pdf: ^34.1.29
   shared_preferences: ^2.5.5
   cloud_firestore: ^6.3.0
   liquid_pull_to_refresh: ^3.0.1
   permission_handler: ^12.0.1
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.1
   csv: ^8.0.0
   # Document processing packages for Phase 1 multi-document support
   # docx: ^0.1.0
