@@ -237,6 +237,8 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:FitnessApp/services/csv_health_service.dart';
+import 'package:FitnessApp/services/food_csv_service.dart';
+import 'package:FitnessApp/services/medical_csv_service.dart';
 import 'package:FitnessApp/models/dashboard_filter.dart';
 
 class HealthDashboardScreen extends StatefulWidget {
@@ -249,6 +251,8 @@ class HealthDashboardScreen extends StatefulWidget {
 class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   final HealthService _healthService = HealthService();
   final CsvHealthService _csvHealthService = CsvHealthService();
+  final FoodCsvService _foodCsvService = FoodCsvService();
+  final MedicalCsvService _medicalCsvService = MedicalCsvService();
   late List<HealthDataPoint> todayData;
   late List<HealthDataPoint> healthData;
   Duration sleepDuration = Duration.zero;
@@ -321,6 +325,15 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
 
   Future<void> loadHealthData() async {
     try {
+      // final food = await _foodCsvService.getCurrentUserFoodData();
+      //
+      // final medical = await _medicalCsvService.getCurrentUserMedicalData();
+      //
+      // print("============= FOOD DATA =============");
+      // print(food?.toJson());
+      //
+      // print("============= MEDICAL DATA =============");
+      // print(medical?.toJson());
       final csvData = await _csvHealthService.getLatestUserData();
 
       if (csvData != null) {

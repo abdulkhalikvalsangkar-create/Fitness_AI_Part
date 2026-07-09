@@ -2,7 +2,7 @@ import 'package:FitnessApp/main.dart';
 import 'package:FitnessApp/screens/onboarding/complete_profile.dart';
 import 'package:FitnessApp/screens/onboarding/create_account.dart';
 import 'package:FitnessApp/screens/forgot_password_screen.dart';
-import 'package:FitnessApp/services/firebase_service.dart';
+import 'package:FitnessApp/services/firebase_service.dart' as auth_service;
 import 'package:FitnessApp/services/firestore_service.dart';
 import 'package:FitnessApp/services/healthconnect.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -132,8 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Icons.g_mobiledata,
                 onPressed: () async {
                   await CsvLoginService.logout();
-                  final UserCredential? userscreds = await FirebaseService()
-                      .signInWithGoogle();
+                  final UserCredential? userscreds = await auth_service.FirebaseService().signInWithGoogle();
 
                   if (userscreds?.user?.email == null) {
                     ScaffoldMessenger.of(context).showSnackBar(

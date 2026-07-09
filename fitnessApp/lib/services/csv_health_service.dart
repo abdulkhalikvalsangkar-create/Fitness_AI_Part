@@ -1,13 +1,15 @@
 import 'package:flutter/services.dart' show rootBundle;
-
+import 'package:intl/intl.dart';
 import '../models/dashboard_data.dart';
 import 'package:FitnessApp/services/user_profile_mapper.dart';
 import 'package:FitnessApp/models/dashboard_filter.dart';
+
 
 class CsvHealthService {
   static const String _assetPath = 'assests/dataset/whoop_fitness_dataset_100k.csv';
 
   List<DashboardData>? _cache;
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
   DateTime? selectedDate;
   DashboardFilter selectedFilter = DashboardFilter.day;
 
@@ -54,8 +56,10 @@ class CsvHealthService {
 
           height: double.tryParse(row['height_cm'] ?? '0') ?? 0,
 
-          date: DateTime.tryParse(row['date'] ?? '') ?? DateTime.now(),
-
+          // date: DateTime.tryParse(row['date'] ?? '') ?? DateTime.now(),
+          date: _dateFormat.parse(
+            row['date'] ?? '01-01-2000',
+          ),
           recoveryScore:
           double.tryParse(row['recovery_score'] ?? '0') ?? 0,
 
