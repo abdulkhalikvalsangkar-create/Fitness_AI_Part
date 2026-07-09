@@ -794,11 +794,30 @@ def _history(context):
     return [_normalize_record(r) for r in records]
 
 
+def _records(context, key):
+    """Read a list-of-records context section (e.g. food/medical datasets)."""
+    value = context.get(key)
+    if isinstance(value, dict):
+        records = value.get("user_history") or []
+    elif isinstance(value, list):
+        records = value
+    else:
+        records = []
+    return [r for r in records if isinstance(r, dict)]
+
+
 def _to_float(value):
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _avg(records, field):
+    values = [v for v in (_to_float(r.get(field)) for r in records) if v is not None]
+    if not values:
+        return None
+    return round(sum(values) / len(values), 2)
 
 
 def _tool_get_health_data_by_date(args, context):
@@ -909,6 +928,104 @@ def _get_attached_docs(context):
     return []
 
 
+def _build_food_section(context):
+    """Summarize the user's nutrition history (food_intake_dataset) for the prompt."""
+    records = _records(context, "food_intake_data")
+    if not records:
+        return None
+    dated = [r for r in records if r.get("date")]
+    dated.sort(key=lambda r: r["date"])
+    latest = dated[-1] if dated else records[-1]
+    span = ""
+    if dated:
+        span = " (" + str(dated[0]["date"]) + " to " + str(dated[-1]["date"]) + ")"
+
+    def num(field):
+        val = _to_float(latest.get(field))
+        return "n/a" if val is None else str(val)
+
+    latest_bits = ", ".join([
+        "calories: " + num("total_calories_kcal") + " kcal",
+        "protein: " + num("protein_g") + " g",
+        "carbs: " + num("carbohydrates_g") + " g",
+        "fat: " + num("fat_g") + " g",
+        "sugar: " + num("sugar_g") + " g",
+        "fiber: " + num("fiber_g") + " g",
+        "sodium: " + num("sodium_mg") + " mg",
+        "water: " + num("water_intake_liters") + " L",
+        "diet quality: " + num("diet_quality_score"),
+    ])
+    avg_bits = []
+    for label, field in [
+        ("calories", "total_calories_kcal"),
+        ("protein", "protein_g"),
+        ("carbs", "carbohydrates_g"),
+        ("fat", "fat_g"),
+        ("sugar", "sugar_g"),
+        ("water (L)", "water_intake_liters"),
+    ]:
+        avg = _avg(records, field)
+        if avg is not None:
+            avg_bits.append(label + ": " + str(avg))
+    section = (
+        "NUTRITION DATA - " + str(len(records)) + " daily food-intake records" + span +
+        ". Latest day (" + str(latest.get("date")) + ") - " + latest_bits + "."
+    )
+    if avg_bits:
+        section += " Averages over this window - " + ", ".join(avg_bits) + "."
+    return section
+
+
+def _build_medical_section(context):
+    """Summarize the user's medical reports (medical_report_dataset) for the prompt."""
+    records = _records(context, "medical_report_data")
+    if not records:
+        return None
+    dated = [r for r in records if r.get("date")]
+    dated.sort(key=lambda r: r["date"])
+    latest = dated[-1] if dated else records[-1]
+
+    def val(field):
+        v = latest.get(field)
+        return "n/a" if v in (None, "") else str(v)
+
+    measures = ", ".join([
+        "blood group: " + val("blood_group"),
+        "BMI: " + val("bmi"),
+        "BP: " + val("blood_pressure_systolic") + "/" + val("blood_pressure_diastolic"),
+        "fasting glucose: " + val("fasting_blood_glucose"),
+        "HbA1c: " + val("hba1c"),
+        "hemoglobin: " + val("hemoglobin"),
+        "vitamin D: " + val("vitamin_d_level"),
+        "vitamin B12: " + val("vitamin_b12_level"),
+        "cholesterol: " + val("cholesterol_total"),
+        "HDL: " + val("hdl"),
+        "LDL: " + val("ldl"),
+        "triglycerides: " + val("triglycerides"),
+    ])
+    flags = ", ".join([
+        "liver: " + val("liver_function_status"),
+        "kidney: " + val("kidney_function_status"),
+        "thyroid: " + val("thyroid_status"),
+        "inflammation: " + val("inflammation_marker"),
+        "allergies: " + val("allergy_flag"),
+        "chronic condition: " + val("chronic_condition"),
+        "physician risk level: " + val("physician_risk_level"),
+    ])
+    section = (
+        "MEDICAL REPORT - " + str(len(records)) + " report(s) on file. Most recent (" +
+        str(latest.get("date")) + ") - " + measures + ". Status flags - " + flags + "."
+    )
+    summary = latest.get("report_summary")
+    if summary:
+        section += " Physician summary: " + str(summary)
+    section += (
+        " Use these clinical values to personalize advice, but do not diagnose; "
+        "recommend consulting a doctor for medical concerns."
+    )
+    return section
+
+
 def build_system_prompt(context):
     parts = [
         "You are a helpful, knowledgeable fitness and health assistant inside a "
@@ -950,6 +1067,12 @@ def build_system_prompt(context):
             filter_hint +
             " Use the tools to query specific dates, trends, or metric summaries."
         )
+    food_section = _build_food_section(context)
+    if food_section:
+        parts.append(food_section)
+    medical_section = _build_medical_section(context)
+    if medical_section:
+        parts.append(medical_section)
     long_term_memory = get_long_term_memory(context)
     if long_term_memory:
         parts.append("LONG-TERM MEMORY - " + str(long_term_memory))

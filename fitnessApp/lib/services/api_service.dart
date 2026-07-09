@@ -16,6 +16,8 @@ import 'package:http/http.dart' as http;
 ///     "context": {                                                // optional
 ///       "user_profile": { ... },
 ///       "csv_health_data": [ { ... }, ... ],   // health history (stays on device)
+///       "food_intake_data": [ { ... }, ... ],  // nutrition history (stays on device)
+///       "medical_report_data": [ { ... }, ... ], // medical reports (stays on device)
 ///       "memory": "long-term memory summary",
 ///       "documents": "combined text of attached documents"
 ///     },

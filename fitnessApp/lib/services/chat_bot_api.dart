@@ -1,5 +1,7 @@
 import 'package:FitnessApp/services/firestore_service.dart';
 import 'package:FitnessApp/services/csv_health_service.dart';
+import 'package:FitnessApp/services/food_csv_service.dart';
+import 'package:FitnessApp/services/medical_csv_service.dart';
 import 'package:FitnessApp/services/csv_login_service.dart';
 import 'package:FitnessApp/services/chat_storage_service.dart';
 import 'package:FitnessApp/services/memory_service.dart';
@@ -78,6 +80,46 @@ class OpenAIService {
       }
     } catch (e) {
       print("[OpenAIService] Error loading CSV health data: $e");
+    }
+
+    // 2b. Food Intake History (nutrition dataset, keyed by CSV user id)
+    try {
+      final csvUserId = await CsvLoginService.getLoggedInUser();
+      if (csvUserId != null) {
+        final history = await FoodCsvService().getUserHistory(csvUserId);
+        if (history.isNotEmpty) {
+          history.sort((a, b) => a.date.compareTo(b.date));
+          // Cap to the most recent records to keep the payload reasonable.
+          const maxRecords = 30;
+          final recent = history.length > maxRecords
+              ? history.sublist(history.length - maxRecords)
+              : history;
+          context['food_intake_data'] = recent.map((e) => e.toJson()).toList();
+          print("[OpenAIService] Added ${recent.length} food intake records to context");
+        }
+      }
+    } catch (e) {
+      print("[OpenAIService] Error loading food intake data: $e");
+    }
+
+    // 2c. Medical Report History (medical dataset, keyed by CSV user id)
+    try {
+      final csvUserId = await CsvLoginService.getLoggedInUser();
+      if (csvUserId != null) {
+        final history = await MedicalCsvService().getUserHistory(csvUserId);
+        if (history.isNotEmpty) {
+          history.sort((a, b) => a.date.compareTo(b.date));
+          // Medical reports are infrequent; keep the most recent ones.
+          const maxRecords = 12;
+          final recent = history.length > maxRecords
+              ? history.sublist(history.length - maxRecords)
+              : history;
+          context['medical_report_data'] = recent.map((e) => e.toJson()).toList();
+          print("[OpenAIService] Added ${recent.length} medical report records to context");
+        }
+      }
+    } catch (e) {
+      print("[OpenAIService] Error loading medical report data: $e");
     }
 
     // 3. Long-term Memory
